@@ -1,0 +1,122 @@
+[
+  {
+    "from_city": "London",
+    "to_city": "Paris",
+    "duration_min": 150,
+    "price_low": 39,
+    "price_mid": 79,
+    "notes": "Eurostar. Arrive early for check-in."
+  },
+  {
+    "from_city": "London",
+    "to_city": "Brussels",
+    "duration_min": 120,
+    "price_low": 29,
+    "price_mid": 69,
+    "notes": "Eurostar."
+  },
+  {
+    "from_city": "London",
+    "to_city": "Amsterdam",
+    "duration_min": 240,
+    "price_low": 45,
+    "price_mid": 90,
+    "notes": "Eurostar (some services via Brussels)."
+  },
+  {
+    "from_city": "Paris",
+    "to_city": "Brussels",
+    "duration_min": 85,
+    "price_low": 25,
+    "price_mid": 55,
+    "notes": "High-speed."
+  },
+  {
+    "from_city": "Brussels",
+    "to_city": "Amsterdam",
+    "duration_min": 120,
+    "price_low": 25,
+    "price_mid": 55,
+    "notes": "High-speed."
+  },
+  {
+    "from_city": "Cologne",
+    "to_city": "Frankfurt",
+    "duration_min": 65,
+    "price_low": 15,
+    "price_mid": 45,
+    "notes": "ICE high-speed."
+  },
+  {
+    "from_city": "Cologne",
+    "to_city": "Brussels",
+    "duration_min": 110,
+    "price_low": 19,
+    "price_mid": 49,
+    "notes": "High-speed."
+  },
+  {
+    "from_city": "Milan",
+    "to_city": "Turin",
+    "duration_min": 60,
+    "price_low": 10,
+    "price_mid": 25,
+    "notes": "Frequent fast trains."
+  },
+  {
+    "from_city": "Milan",
+    "to_city": "Venice",
+    "duration_min": 165,
+    "price_low": 15,
+    "price_mid": 45,
+    "notes": "High-speed."
+  },
+  {
+    "from_city": "Rome",
+    "to_city": "Florence",
+    "duration_min": 95,
+    "price_low": 15,
+    "price_mid": 40,
+    "notes": "High-speed."
+  },
+  {
+    "from_city": "Barcelona",
+    "to_city": "Madrid",
+    "duration_min": 165,
+    "price_low": 25,
+    "price_mid": 55,
+    "notes": "High-speed (AVE/low-cost)."
+  },
+  {
+    "from_city": "Vienna",
+    "to_city": "Budapest",
+    "duration_min": 160,
+    "price_low": 15,
+    "price_mid": 35,
+    "notes": "Frequent rail link."
+  },
+  {
+    "from_city": "Vienna",
+    "to_city": "Prague",
+    "duration_min": 250,
+    "price_low": 15,
+    "price_mid": 35,
+    "notes": "Rail link."
+  },
+  {
+    "from_city": "Berlin",
+    "to_city": "Hamburg",
+    "duration_min": 105,
+    "price_low": 13,
+    "price_mid": 30,
+    "notes": "Frequent trains."
+  },
+  {
+    "from_city": "Munich",
+    "to_city": "Vienna",
+    "duration_min": 240,
+    "price_low": 19,
+    "price_mid": 49,
+    "notes": "Rail link."
+  }
+]
