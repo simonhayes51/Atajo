@@ -139,30 +139,25 @@ app.get("/api/places", (req, res) => {
   if (q.length < 2) return res.json([]);
 
   const out = airports
-    .filter(a => {
-      const iata = String(a.iata || "").toLowerCase();
-      const city = String(a.city || "").toLowerCase();
-      const name = String(a.name || "").toLowerCase();
-      const metro = String(a.metro || "").toLowerCase();
-      const country = String(a.country || "").toLowerCase();
+    .map(a => {
+      // support both schemas: {iata} OR {code}
+      const iata = String(a.iata || a.code || "").toUpperCase();
+      const city = String(a.city || "");
+      const name = String(a.name || "");
+      const country = String(a.country || "");
+      const metro = String(a.metro || "");
 
-      return (
-        iata.includes(q) ||
-        city.includes(q) ||
-        name.includes(q) ||
-        metro.includes(q) ||
-        country === q
-      );
+      return { iata, city, name, country, metro };
     })
-    .slice(0, 12)
-    .map(a => ({
-      // IMPORTANT: index.html expects x.iata
-      iata: String(a.iata || "").toUpperCase(),
-      city: a.city || "",
-      name: a.name || "",
-      country: a.country || "",
-      metro: a.metro || ""
-    }));
+    .filter(a => {
+      const iata = a.iata.toLowerCase();
+      const city = a.city.toLowerCase();
+      const name = a.name.toLowerCase();
+      const metro = a.metro.toLowerCase();
+      return iata.includes(q) || city.includes(q) || name.includes(q) || metro.includes(q);
+    })
+    .filter(a => a.iata && a.iata.length === 3) // prevent undefined + junk rows
+    .slice(0, 12);
 
   res.json(out);
 });
