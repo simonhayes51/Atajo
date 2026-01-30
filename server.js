@@ -138,28 +138,25 @@ app.get("/api/places", (req, res) => {
   const q = String(req.query.q || "").toLowerCase().trim();
   if (q.length < 2) return res.json([]);
 
-  const out = airports
+  const results = airports
     .map(a => {
-      // support both schemas: {iata} OR {code}
       const iata = String(a.iata || a.code || "").toUpperCase();
-      const city = String(a.city || "");
-      const name = String(a.name || "");
-      const country = String(a.country || "");
-      const metro = String(a.metro || "");
-
-      return { iata, city, name, country, metro };
+      return {
+        iata,
+        city: String(a.city || ""),
+        name: String(a.name || ""),
+        country: String(a.country || ""),
+        metro: String(a.metro || "")
+      };
     })
-    .filter(a => {
-      const iata = a.iata.toLowerCase();
-      const city = a.city.toLowerCase();
-      const name = a.name.toLowerCase();
-      const metro = a.metro.toLowerCase();
-      return iata.includes(q) || city.includes(q) || name.includes(q) || metro.includes(q);
+    .filter(x => {
+      const hay = `${x.iata} ${x.city} ${x.name} ${x.metro}`.toLowerCase();
+      return hay.includes(q);
     })
-    .filter(a => a.iata && a.iata.length === 3) // prevent undefined + junk rows
+    .filter(x => x.iata && x.iata.length === 3)
     .slice(0, 12);
 
-  res.json(out);
+  res.json(results);
 });
 
 /* ================= TP LEG SEARCH =================
