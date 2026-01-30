@@ -1,98 +1,164 @@
-
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8"/>
-<title>Atajo</title>
-<style>
-body{font-family:Arial;background:#0b132b;color:#fff;padding:30px}
-input,button{padding:10px;font-size:16px;margin:5px}
-.list{background:#fff;color:#000;position:absolute;z-index:5}
-.item{padding:5px;cursor:pointer}
-.item:hover{background:#eee}
-</style>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Atajo</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#0b132b;color:#fff;margin:0;padding:24px}
+    .wrap{max-width:640px;margin:0 auto}
+    h1{margin:0 0 8px 0;font-size:42px;letter-spacing:-0.5px}
+    .sub{opacity:.85;margin:0 0 18px 0}
+    .panel{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:16px}
+    label{display:block;font-size:12px;opacity:.8;margin:10px 0 6px}
+    input,select,button{width:100%;box-sizing:border-box;padding:12px 14px;font-size:16px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.25);color:#fff}
+    button{margin-top:14px;background:#2dd36f;border:none;color:#08131b;font-weight:700}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .meta{opacity:.8;margin:10px 0 0 0}
+    pre{white-space:pre-wrap;background:rgba(0,0,0,.25);padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.08)}
+    .acWrap{position:relative}
+    .list{position:absolute;left:0;right:0;top:calc(100% + 6px);background:#0f1b3d;border:1px solid rgba(255,255,255,.12);border-radius:12px;overflow:hidden;z-index:10}
+    .item{padding:10px 12px;cursor:pointer}
+    .item:hover{background:rgba(255,255,255,.07)}
+    .muted{opacity:.8;font-size:12px}
+  </style>
 </head>
 <body>
+  <div class="wrap">
+    <h1>Atajo ✈️</h1>
+    <p class="sub" id="mode">Loading…</p>
 
-<h1>Atajo ✈️</h1>
-<div id="mode"></div>
+    <div class="panel">
+      <div class="row">
+        <div class="acWrap">
+          <label>From (IATA or city)</label>
+          <input id="from" autocomplete="off" placeholder="e.g. NCL or Newcastle"/>
+          <div id="fromList" class="list" style="display:none"></div>
+        </div>
 
-<div>
-<input id="from" placeholder="From"/>
-<div id="fromList" class="list"></div>
-</div>
+        <div class="acWrap">
+          <label>To (IATA or city)</label>
+          <input id="to" autocomplete="off" placeholder="e.g. DUS or Düsseldorf"/>
+          <div id="toList" class="list" style="display:none"></div>
+        </div>
+      </div>
 
-<div>
-<input id="to" placeholder="To"/>
-<div id="toList" class="list"></div>
-</div>
+      <div class="row">
+        <div>
+          <label>Date</label>
+          <input id="date" type="date"/>
+          <div class="muted">Optional. Leave blank for “cheapest found”.</div>
+        </div>
+        <div>
+          <label>Flexible days (±)</label>
+          <select id="flex">
+            <option value="">Off</option>
+            <option value="3">±3 days</option>
+            <option value="7">±7 days</option>
+          </select>
+        </div>
+      </div>
 
-<button onclick="search()">Search</button>
+      <button id="btn">Search</button>
+      <p class="meta muted">Tip: Autocomplete selects IATA codes. Some small routes may need “via” hubs.</p>
+    </div>
 
-<pre id="out"></pre>
+    <h3 style="margin:18px 0 8px">Results</h3>
+    <pre id="out">{}</pre>
+  </div>
 
 <script>
-async function init(){
- const h=await fetch("/health").then(r=>r.json());
- document.getElementById("mode").innerText =
-   `Mode: ${h.mode} | Provider: ${h.provider}`;
- restore();
- wire("from","fromList");
- wire("to","toList");
+async function init() {
+  const h = await fetch("/health").then(r=>r.json()).catch(()=>({}));
+  // your /health currently returns travelpayouts/serpapi booleans — show something sensible
+  document.getElementById("mode").innerText =
+    `Mode: ${h.travelpayouts ? "LIVE" : "MOCK"} | Provider: travelpayouts${h.serpapi ? " + serpapi" : ""}`;
+
+  restore();
+  wire("from","fromList");
+  wire("to","toList");
+
+  document.getElementById("btn").addEventListener("click", search);
 }
 
-function restore(){
- const s=JSON.parse(localStorage.getItem("atajo")||"{}");
- if(s.from)from.value=s.from;
- if(s.to)to.value=s.to;
+function restore() {
+  try {
+    const s = JSON.parse(localStorage.getItem("atajo_state") || "{}");
+    if (s.from) from.value = s.from;
+    if (s.to) to.value = s.to;
+    if (s.date) date.value = s.date;
+    if (s.flex !== undefined) flex.value = s.flex;
+  } catch {}
+}
+function save() {
+  localStorage.setItem("atajo_state", JSON.stringify({
+    from: from.value.trim(),
+    to: to.value.trim(),
+    date: date.value,
+    flex: flex.value
+  }));
 }
 
-function save(){
- localStorage.setItem("atajo",JSON.stringify({
-  from:from.value,to:to.value
- }));
-}
+let t = {};
+function wire(id, listId) {
+  const input = document.getElementById(id);
+  const list = document.getElementById(listId);
 
-function wire(id,listId){
- const i=document.getElementById(id);
- const l=document.getElementById(listId);
+  input.addEventListener("input", () => {
+    const q = input.value.trim();
+    clearTimeout(t[id]);
 
- i.oninput=async()=>{
-  const q=i.value.trim();
-  if(q.length<2){l.innerHTML="";return;}
-  const r=await fetch("/api/places?q="+q);
-  const d=await r.json();
-  l.innerHTML="";
-  d.forEach(a=>{
-   const div=document.createElement("div");
-   div.className="item";
-   div.textContent=`${a.city} (${a.code})`;
-   div.onclick=()=>{
-    i.value=a.code;
-    l.innerHTML="";
-    save();
-   };
-   l.appendChild(div);
+    if (q.length < 2) { list.style.display="none"; list.innerHTML=""; return; }
+
+    t[id] = setTimeout(async () => {
+      const r = await fetch("/api/places?q=" + encodeURIComponent(q));
+      const d = await r.json();
+      list.innerHTML = "";
+
+      if (!Array.isArray(d) || d.length === 0) { list.style.display="none"; return; }
+
+      d.forEach(a => {
+        const div = document.createElement("div");
+        div.className = "item";
+        div.textContent = `${a.city || ""} (${a.code}) — ${a.name || ""}`.trim();
+        div.onclick = () => {
+          input.value = a.code;
+          list.style.display="none";
+          list.innerHTML = "";
+          save();
+        };
+        list.appendChild(div);
+      });
+
+      list.style.display = "block";
+    }, 200);
   });
- };
-}
 
-async function search(){
- save();
- const r=await fetch("/api/search",{
-  method:"POST",
-  headers:{"Content-Type":"application/json"},
-  body:JSON.stringify({
-   from:from.value,
-   to:to.value
-  })
- });
- const j=await r.json();
- out.textContent=JSON.stringify(j,null,2);
+  input.addEventListener("blur", () => setTimeout(()=>{ list.style.display="none"; }, 120));
+  input.addEventListener("change", save);
+}
+async function search() {
+  save();
+  out.textContent = "Searching…";
+
+  const payload = {
+    from: from.value.trim().toUpperCase(),
+    to: to.value.trim().toUpperCase(),
+    date: date.value || null,
+    flex: flex.value || null
+  };
+
+  const r = await fetch("/api/search", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  const j = await r.json();
+  out.textContent = JSON.stringify(j, null, 2);
 }
 
 init();
 </script>
-
 </body>
 </html>
