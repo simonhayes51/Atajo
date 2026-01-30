@@ -1,45 +1,50 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Atajo</title>
+  <title>Atajo MVP</title>
   <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#0b132b;color:#fff;margin:0;padding:24px}
-    .wrap{max-width:640px;margin:0 auto}
-    h1{margin:0 0 8px 0;font-size:42px;letter-spacing:-0.5px}
-    .sub{opacity:.85;margin:0 0 18px 0}
-    .panel{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:16px}
-    label{display:block;font-size:12px;opacity:.8;margin:10px 0 6px}
-    input,select,button{width:100%;box-sizing:border-box;padding:12px 14px;font-size:16px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.25);color:#fff}
-    button{margin-top:14px;background:#2dd36f;border:none;color:#08131b;font-weight:700}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#0b0f14;color:#e8eef6}
+    .wrap{max-width:980px;margin:0 auto;padding:24px}
+    h1{margin:0 0 8px;font-size:34px}
+    p{opacity:.85;line-height:1.45}
+    .card{background:#111827;border:1px solid #1f2937;border-radius:14px;padding:16px;margin:14px 0}
+    label{display:block;font-size:13px;opacity:.85;margin:10px 0 6px}
+    input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #243244;background:#0b1220;color:#e8eef6}
     .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .meta{opacity:.8;margin:10px 0 0 0}
-    pre{white-space:pre-wrap;background:rgba(0,0,0,.25);padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.08)}
-    .acWrap{position:relative}
-    .list{position:absolute;left:0;right:0;top:calc(100% + 6px);background:#0f1b3d;border:1px solid rgba(255,255,255,.12);border-radius:12px;overflow:hidden;z-index:10}
-    .item{padding:10px 12px;cursor:pointer}
-    .item:hover{background:rgba(255,255,255,.07)}
-    .muted{opacity:.8;font-size:12px}
+    button{background:#22c55e;border:none;color:#07120a;font-weight:700;padding:12px 14px;border-radius:10px;cursor:pointer}
+    button:disabled{opacity:.6;cursor:not-allowed}
+    .tag{display:inline-block;background:#0b1220;border:1px solid #22304a;color:#cfe2ff;padding:4px 8px;border-radius:999px;font-size:12px;margin-right:6px}
+    .small{font-size:12px;opacity:.8}
+    .it{padding:12px;border-radius:12px;background:#0b1220;border:1px solid #22304a;margin-top:10px}
+    .legs{margin-top:10px}
+    .leg{display:flex;justify-content:space-between;gap:10px;padding:10px;border-bottom:1px solid #1d2a40}
+    .leg:last-child{border-bottom:none}
+    .muted{opacity:.75}
+    .danger{color:#fb7185}
+    .ok{color:#34d399}
+    a{color:#93c5fd}
+    .hr{height:1px;background:#1f2937;margin:14px 0}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>Atajo ✈️</h1>
-    <p class="sub" id="mode">Loading…</p>
+    <h1>Atajo</h1>
+    <p><span id="modeBanner" class="tag">mode: …</span></p>
+    <p>The shortcut to cheaper travel. Enter where you need to end up — Atajo finds cheap multi-leg routes (plus rail shortcuts) you can book yourself.</p>
 
-    <div class="panel">
+    <div class="card">
       <div class="row">
-        <div class="acWrap">
-          <label>From (IATA or city)</label>
-          <input id="from" autocomplete="off" placeholder="e.g. NCL or Newcastle"/>
-          <div id="fromList" class="list" style="display:none"></div>
+        <div>
+          <label>From (IATA or city) — optional</label>
+          <input id="from" placeholder="Newcastle or NCL (leave blank for scope list)"/>
+          <div id="fromHints" class="small"></div>
         </div>
-
-        <div class="acWrap">
-          <label>To (IATA or city)</label>
-          <input id="to" autocomplete="off" placeholder="e.g. DUS or Düsseldorf"/>
-          <div id="toList" class="list" style="display:none"></div>
+        <div>
+          <label>To (IATA or city) — required</label>
+          <input id="to" placeholder="Düsseldorf or DUS"/>
+          <div id="toHints" class="small"></div>
         </div>
       </div>
 
@@ -47,118 +52,224 @@
         <div>
           <label>Date</label>
           <input id="date" type="date"/>
-          <div class="muted">Optional. Leave blank for “cheapest found”.</div>
         </div>
         <div>
           <label>Flexible days (±)</label>
-          <select id="flex">
-            <option value="">Off</option>
-            <option value="3">±3 days</option>
-            <option value="7">±7 days</option>
+          <select id="flexDays">
+            <option value="0" selected>Exact</option>
+            <option value="3">±3</option>
+            <option value="7">±7</option>
           </select>
         </div>
       </div>
 
-      <button id="btn">Search</button>
-      <p class="meta muted">Tip: Autocomplete selects IATA codes. Some small routes may need “via” hubs.</p>
+      <div class="row">
+        <div>
+          <label>Origin scope</label>
+          <select id="originScope">
+            <option value="UK" selected>UK only</option>
+            <option value="EUROPE">UK + Europe</option>
+            <option value="ANYWHERE">Anywhere (demo = hubs)</option>
+          </select>
+        </div>
+        <div>
+          <label>Max stops</label>
+          <select id="maxStops">
+            <option value="0">0 (direct)</option>
+            <option value="1" selected>1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Adventure level (country bonus)</label>
+          <select id="adventureLevel">
+            <option value="0">Chill</option>
+            <option value="1" selected>Balanced</option>
+            <option value="2">Wild</option>
+          </select>
+        </div>
+        <div>
+          <label>Max total hours</label>
+          <select id="maxTotalHours">
+            <option value="12">12h</option>
+            <option value="24" selected>24h</option>
+            <option value="48">48h</option>
+            <option value="72">72h</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Min self-transfer buffer</label>
+          <select id="minBufferMin">
+            <option value="120">2h</option>
+            <option value="180" selected>3h</option>
+            <option value="240">4h</option>
+            <option value="360">6h</option>
+          </select>
+        </div>
+        <div>
+          <label>Include trains</label>
+          <select id="includeTrains">
+            <option value="true" selected>Yes</option>
+            <option value="false">No</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;display:flex;gap:10px;align-items:center">
+        <button id="go">Find shortcuts</button>
+        <span id="status" class="small"></span>
+      </div>
+
+      <div class="hr"></div>
+      <p class="small">Note: This MVP is informative. Debug: open /api/debug to confirm LIVE/REPLAY and key detection. Routes may use separate tickets (self-transfer). Rail legs are estimated typical prices/durations.</p>
     </div>
 
-    <h3 style="margin:18px 0 8px">Results</h3>
-    <pre id="out">{}</pre>
+    <div id="results"></div>
   </div>
 
 <script>
-async function init() {
-  const h = await fetch("/health").then(r=>r.json()).catch(()=>({}));
-  // your /health currently returns travelpayouts/serpapi booleans — show something sensible
-  document.getElementById("mode").innerText =
-    `Mode: ${h.travelpayouts ? "LIVE" : "MOCK"} | Provider: travelpayouts${h.serpapi ? " + serpapi" : ""}`;
+  const $ = (id) => document.getElementById(id);
 
-  restore();
-  wire("from","fromList");
-  wire("to","toList");
+  const today = new Date().toISOString().slice(0,10);
+  $("date").value = today;
 
-  document.getElementById("btn").addEventListener("click", search);
-}
+  async function places(q) {
+    const r = await fetch("/api/places?q=" + encodeURIComponent(q));
+    return r.json();
+  }
 
-function restore() {
-  try {
-    const s = JSON.parse(localStorage.getItem("atajo_state") || "{}");
-    if (s.from) from.value = s.from;
-    if (s.to) to.value = s.to;
-    if (s.date) date.value = s.date;
-    if (s.flex !== undefined) flex.value = s.flex;
-  } catch {}
-}
-function save() {
-  localStorage.setItem("atajo_state", JSON.stringify({
-    from: from.value.trim(),
-    to: to.value.trim(),
-    date: date.value,
-    flex: flex.value
-  }));
-}
+  function wireAutocomplete(inputId, hintId) {
+    const el = $(inputId);
+    const hints = $(hintId);
+    let t = null;
+    el.addEventListener("input", () => {
+      clearTimeout(t);
+      const q = el.value.trim();
+      if (q.length < 2) { hints.innerHTML = ""; return; }
+      t = setTimeout(async () => {
+        try {
+          const data = await places(q);
+          hints.innerHTML = data.results.map(r => `<span class="tag" data-iata="${r.iata}">${r.city} (${r.iata})</span>`).join(" ");
+          hints.querySelectorAll(".tag").forEach(tag => {
+            tag.addEventListener("click", () => { el.value = tag.dataset.iata; hints.innerHTML = ""; });
+          });
+        } catch (e) { /* ignore */ }
+      }, 200);
+    });
+  }
 
-let t = {};
-function wire(id, listId) {
-  const input = document.getElementById(id);
-  const list = document.getElementById(listId);
+  wireAutocomplete("from","fromHints");
 
-  input.addEventListener("input", () => {
-    const q = input.value.trim();
-    clearTimeout(t[id]);
+  // show backend mode + key detection
+  fetch("/health").then(r=>r.json()).then(h=>{
+    const el = $("modeBanner");
+    if (!el) return;
+    el.textContent = `mode: ${h.mode}${h.hasAmadeusKeys ? "" : " (no keys)"}`;
+  }).catch(()=>{});
 
-    if (q.length < 2) { list.style.display="none"; list.innerHTML=""; return; }
+  wireAutocomplete("to","toHints");
 
-    t[id] = setTimeout(async () => {
-      const r = await fetch("/api/places?q=" + encodeURIComponent(q));
-      const d = await r.json();
-      list.innerHTML = "";
+  function money(n){ return "£" + (Math.round(n*100)/100).toFixed(2); }
+  function minsToHrs(m){ const h = Math.floor(m/60); const mm = m%60; return `${h}h ${mm}m`; }
 
-      if (!Array.isArray(d) || d.length === 0) { list.style.display="none"; return; }
+  function itineraryCard(it, title) {
+    const flags = [];
+    const risk = [];
+    if (it.legs.some(l=>l.tight)) risk.push("Tight transfer");
+    if (it.legs.some(l=>l.overnight)) risk.push("Overnight");
+    if (it.legs.some(l=>l.type==="TRAIN")) flags.push("🚄 Train");
+    const countries = it.countriesCount ? `${it.countriesCount} countries` : "";
+    const badge = risk.length ? `<span class="tag danger">⚠ ${risk.join(", ")}</span>` : `<span class="tag ok">OK</span>`;
 
-      d.forEach(a => {
-        const div = document.createElement("div");
-        div.className = "item";
-        div.textContent = `${a.city || ""} (${a.code}) — ${a.name || ""}`.trim();
-        div.onclick = () => {
-          input.value = a.code;
-          list.style.display="none";
-          list.innerHTML = "";
-          save();
-        };
-        list.appendChild(div);
-      });
+    return `
+      <div class="it">
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+          <div>
+            <div style="font-weight:800;font-size:16px">${title}</div>
+            <div class="muted small">${money(it.total_cost)} · ${minsToHrs(it.total_duration_min)} · ${it.legs.length-1} stops · ${countries} ${flags.join(" ")}</div>
+          </div>
+          <div>${badge}</div>
+        </div>
+        <div class="legs">
+          ${it.legs.map((l, idx) => `
+            <div class="leg">
+              <div>
+                <div style="font-weight:700">${l.type==="TRAIN"?"🚄":"✈️"} ${l.origin} → ${l.destination} <span class="muted small">${l.provider||""} ${l.airline?("· "+l.airline):""}</span></div>
+                <div class="small muted">${l.depart_ts ? (l.depart_ts.replace("T"," ").slice(0,16) + " → " + l.arrive_ts.replace("T"," ").slice(0,16)) : (l.notes || "Rail estimate")}</div>
+              </div>
+              <div style="text-align:right">
+                <div style="font-weight:800">${money(l.price_gbp)}</div>
+                <div class="small muted">${minsToHrs(l.duration_min)}</div>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+        <div class="small muted" style="margin-top:8px">Score: ${Math.round(it.score)} · Pain: ${Math.round(it.pain)} · Extra countries bonus: ${it.extraCountries}</div>
+      </div>
+    `;
+  }
 
-      list.style.display = "block";
-    }, 200);
+  $("go").addEventListener("click", async () => {
+    const payload = {
+      from: $("from").value.trim() || null,
+      to: $("to").value.trim(),
+      date: $("date").value,
+      flexDays: Number($("flexDays").value),
+      originScope: $("originScope").value,
+      maxStops: Number($("maxStops").value),
+      adventureLevel: Number($("adventureLevel").value),
+      maxTotalHours: Number($("maxTotalHours").value),
+      minBufferMin: Number($("minBufferMin").value),
+      includeTrains: $("includeTrains").value === "true"
+    };
+
+    if (!payload.to) {
+      $("status").textContent = "Enter a destination.";
+      return;
+    }
+
+    $("go").disabled = true;
+    $("status").textContent = "Searching…";
+    $("results").innerHTML = "";
+
+    try {
+      const r = await fetch("/api/search", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(payload) });
+      const data = await r.json();
+      if (data.error) {
+        $("results").innerHTML = `<div class="card"><div style="font-weight:800">Error</div><div class="muted">${data.error}</div></div>`;
+      } else {
+        const cards = [];
+        const itins = data.itineraries || [];
+        const labels = ["Cheapest", "Best value", "Fastest", "Cheapest w/ extra countries", "Train hack"];
+        for (let i=0; i<itins.length; i++) {
+          cards.push(itineraryCard(itins[i], labels[i] || ("Option " + (i+1))));
+        }
+        const baseline = data.baseline;
+        $("results").innerHTML = `
+          <div class="card">
+            <div style="font-weight:900;font-size:18px">Results</div>
+            <div class="muted small">Baseline cheapest: ${baseline ? (money(baseline.total_cost) + " · " + minsToHrs(baseline.total_duration_min)) : "—"}</div>
+            <div class="hr"></div>
+            ${cards.join("")}
+            <div class="hr"></div>
+            <div class="small muted">Tip: Try <b>NCL → DUS</b> with max stops 2–3 and trains enabled. If you add Amadeus keys on Railway, you’ll start seeing live offers on direct legs (provider coverage varies).</div>
+          </div>
+        `;
+      }
+    } catch (e) {
+      $("results").innerHTML = `<div class="card"><div style="font-weight:800">Error</div><div class="muted">${String(e)}</div></div>`;
+    } finally {
+      $("go").disabled = false;
+      $("status").textContent = "";
+    }
   });
-
-  input.addEventListener("blur", () => setTimeout(()=>{ list.style.display="none"; }, 120));
-  input.addEventListener("change", save);
-}
-async function search() {
-  save();
-  out.textContent = "Searching…";
-
-  const payload = {
-    from: from.value.trim().toUpperCase(),
-    to: to.value.trim().toUpperCase(),
-    date: date.value || null,
-    flex: flex.value || null
-  };
-
-  const r = await fetch("/api/search", {
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify(payload)
-  });
-
-  const j = await r.json();
-  out.textContent = JSON.stringify(j, null, 2);
-}
-
-init();
 </script>
 </body>
 </html>
