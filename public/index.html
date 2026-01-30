@@ -2,274 +2,411 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Atajo MVP</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Atajo</title>
   <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#0b0f14;color:#e8eef6}
-    .wrap{max-width:980px;margin:0 auto;padding:24px}
-    h1{margin:0 0 8px;font-size:34px}
-    p{opacity:.85;line-height:1.45}
-    .card{background:#111827;border:1px solid #1f2937;border-radius:14px;padding:16px;margin:14px 0}
-    label{display:block;font-size:13px;opacity:.85;margin:10px 0 6px}
-    input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #243244;background:#0b1220;color:#e8eef6}
+    :root{
+      --bg:#070b12;
+      --panel:#0b1220;
+      --panel2:#0c1628;
+      --text:#e9eef7;
+      --muted:rgba(233,238,247,.68);
+      --line:rgba(255,255,255,.10);
+      --green:#2dd36f;
+      --chip:rgba(255,255,255,.08);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:-apple-system,BlinkMacSystemFont,Inter,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+      background:radial-gradient(900px 500px at 30% 0%, #0b1630 0%, var(--bg) 55%);
+      color:var(--text);
+    }
+    .wrap{max-width:780px;margin:0 auto;padding:26px 16px 60px;}
+    h1{margin:0 0 8px;font-size:44px;letter-spacing:-0.5px}
+    .tag{color:var(--muted);font-size:14px;margin-bottom:18px;line-height:1.35}
+    .card{
+      background:linear-gradient(180deg,var(--panel),var(--panel2));
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:18px;
+      box-shadow:0 20px 70px rgba(0,0,0,.35);
+    }
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    label{display:block;font-size:13px;color:var(--muted);margin:8px 0 6px}
+    input,select{
+      width:100%;
+      padding:14px 14px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(0,0,0,.18);
+      color:var(--text);
+      outline:none;
+    }
+    input:focus,select:focus{border-color:rgba(45,211,111,.55);box-shadow:0 0 0 3px rgba(45,211,111,.12)}
     .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    button{background:#22c55e;border:none;color:#07120a;font-weight:700;padding:12px 14px;border-radius:10px;cursor:pointer}
-    button:disabled{opacity:.6;cursor:not-allowed}
-    .tag{display:inline-block;background:#0b1220;border:1px solid #22304a;color:#cfe2ff;padding:4px 8px;border-radius:999px;font-size:12px;margin-right:6px}
-    .small{font-size:12px;opacity:.8}
-    .it{padding:12px;border-radius:12px;background:#0b1220;border:1px solid #22304a;margin-top:10px}
-    .legs{margin-top:10px}
-    .leg{display:flex;justify-content:space-between;gap:10px;padding:10px;border-bottom:1px solid #1d2a40}
-    .leg:last-child{border-bottom:none}
-    .muted{opacity:.75}
-    .danger{color:#fb7185}
-    .ok{color:#34d399}
-    a{color:#93c5fd}
-    .hr{height:1px;background:#1f2937;margin:14px 0}
+    .btn{
+      margin-top:16px;
+      width:100%;
+      padding:16px;
+      border:none;
+      border-radius:14px;
+      background:var(--green);
+      color:#03210f;
+      font-weight:800;
+      font-size:18px;
+      cursor:pointer;
+    }
+    .note{margin-top:10px;color:var(--muted);font-size:13px;line-height:1.35}
+    h2{margin:24px 0 10px;font-size:30px}
+    .results{margin-top:10px}
+    .it{
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:16px;
+      background:rgba(0,0,0,.16);
+      padding:14px;
+      margin:12px 0;
+    }
+    .itHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+    .itTitle{font-weight:900;font-size:18px}
+    .pill{
+      font-size:12px;
+      padding:6px 10px;
+      border-radius:999px;
+      background:rgba(45,211,111,.12);
+      border:1px solid rgba(45,211,111,.25);
+      color:rgba(233,238,247,.85);
+    }
+    .meta{color:var(--muted);font-size:13px;margin-top:2px}
+    .leg{
+      display:flex;justify-content:space-between;align-items:center;
+      padding:10px 0;border-top:1px solid rgba(255,255,255,.08)
+    }
+    .leg:first-of-type{border-top:none}
+    .legLeft{display:flex;gap:10px;align-items:flex-start}
+    .icon{width:26px}
+    .legMain{line-height:1.15}
+    .route{font-weight:800}
+    .small{font-size:12px;color:var(--muted);margin-top:4px}
+    .price{font-weight:900}
+    .link{color:rgba(45,211,111,.95);text-decoration:none;font-weight:700;font-size:13px}
+    .chiprow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .chip{background:var(--chip);border:1px solid rgba(255,255,255,.08);border-radius:999px;padding:6px 10px;font-size:12px;color:rgba(233,238,247,.86)}
+    .hidden{display:none}
+
+    /* AUTOCOMPLETE */
+    .rel{position:relative}
+    .suggest{
+      position:absolute;left:0;right:0;top:100%;
+      margin-top:8px;
+      background:rgba(10,16,30,.98);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:14px;
+      overflow:hidden;
+      z-index:9999;
+      box-shadow:0 18px 60px rgba(0,0,0,.55);
+    }
+    .s-item{
+      display:flex;gap:12px;padding:10px 12px;
+      cursor:pointer;border-bottom:1px solid rgba(255,255,255,.06);
+    }
+    .s-item:last-child{border-bottom:none}
+    .s-item:hover{background:rgba(255,255,255,.06)}
+    .s-code{width:54px;font-weight:900;letter-spacing:.4px}
+    .s-city{font-weight:800}
+    .s-name{opacity:.75;font-size:12px;margin-top:2px}
+
+    @media (max-width:640px){
+      h1{font-size:38px}
+      .grid,.row{grid-template-columns:1fr}
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>Atajo</h1>
-    <p><span id="modeBanner" class="tag">mode: …</span></p>
-    <p>The shortcut to cheaper travel. Enter where you need to end up — Atajo finds cheap multi-leg routes (plus rail shortcuts) you can book yourself.</p>
+    <h1>Atajo ✈️</h1>
+    <div class="tag">
+      The shortcut to cheaper travel. Enter where you need to end up — Atajo finds cheap multi-leg routes
+      (plus rail shortcuts) you can book yourself.
+    </div>
 
     <div class="card">
       <div class="row">
-        <div>
+        <div class="rel">
           <label>From (IATA or city) — optional</label>
-          <input id="from" placeholder="Newcastle or NCL (leave blank for scope list)"/>
-          <div id="fromHints" class="small"></div>
+          <input id="fromInput" autocomplete="off" placeholder="e.g. Newcastle or NCL">
+          <div id="fromSuggest" class="suggest hidden"></div>
         </div>
-        <div>
+        <div class="rel">
           <label>To (IATA or city) — required</label>
-          <input id="to" placeholder="Düsseldorf or DUS"/>
-          <div id="toHints" class="small"></div>
+          <input id="toInput" autocomplete="off" placeholder="e.g. Düsseldorf or DUS">
+          <div id="toSuggest" class="suggest hidden"></div>
         </div>
       </div>
 
       <div class="row">
         <div>
           <label>Date</label>
-          <input id="date" type="date"/>
+          <input id="dateInput" type="date">
         </div>
         <div>
           <label>Flexible days (±)</label>
-          <select id="flexDays">
-            <option value="0" selected>Exact</option>
-            <option value="3">±3</option>
-            <option value="7">±7</option>
+          <select id="flexInput">
+            <option value="0">Exact</option>
+            <option value="3">±3 days</option>
+            <option value="7">±7 days</option>
           </select>
         </div>
       </div>
 
-      <div class="row">
+      <div class="grid">
         <div>
           <label>Origin scope</label>
-          <select id="originScope">
-            <option value="UK" selected>UK only</option>
-            <option value="EUROPE">UK + Europe</option>
-            <option value="ANYWHERE">Anywhere (demo = hubs)</option>
+          <select id="scopeInput">
+            <option value="UK">UK</option>
+            <option value="UK_EU" selected>UK + Europe</option>
+            <option value="GLOBAL">Global (some hubs)</option>
           </select>
         </div>
         <div>
           <label>Max stops</label>
-          <select id="maxStops">
-            <option value="0">0 (direct)</option>
+          <select id="stopsInput">
+            <option value="0">0</option>
             <option value="1" selected>1</option>
             <option value="2">2</option>
-            <option value="3">3</option>
           </select>
         </div>
-      </div>
 
-      <div class="row">
         <div>
           <label>Adventure level (country bonus)</label>
-          <select id="adventureLevel">
-            <option value="0">Chill</option>
+          <select id="advInput">
+            <option value="0.5">Low</option>
             <option value="1" selected>Balanced</option>
-            <option value="2">Wild</option>
+            <option value="1.5">High</option>
+            <option value="2">Max</option>
           </select>
         </div>
         <div>
           <label>Max total hours</label>
-          <select id="maxTotalHours">
+          <select id="maxHoursInput">
             <option value="12">12h</option>
             <option value="24" selected>24h</option>
+            <option value="36">36h</option>
             <option value="48">48h</option>
-            <option value="72">72h</option>
           </select>
         </div>
-      </div>
 
-      <div class="row">
         <div>
           <label>Min self-transfer buffer</label>
-          <select id="minBufferMin">
+          <select id="bufferInput">
             <option value="120">2h</option>
             <option value="180" selected>3h</option>
             <option value="240">4h</option>
-            <option value="360">6h</option>
           </select>
         </div>
         <div>
           <label>Include trains</label>
-          <select id="includeTrains">
-            <option value="true" selected>Yes</option>
-            <option value="false">No</option>
+          <select id="trainsInput">
+            <option value="1" selected>Yes</option>
+            <option value="0">No</option>
           </select>
         </div>
       </div>
 
-      <div style="margin-top:14px;display:flex;gap:10px;align-items:center">
-        <button id="go">Find shortcuts</button>
-        <span id="status" class="small"></span>
-      </div>
+      <button class="btn" id="goBtn">Find shortcuts</button>
 
-      <div class="hr"></div>
-      <p class="small">Note: This MVP is informative. Debug: open /api/debug to confirm LIVE/REPLAY and key detection. Routes may use separate tickets (self-transfer). Rail legs are estimated typical prices/durations.</p>
+      <div class="note">
+        Note: This MVP is informative. Routes may use separate tickets (self-transfer). Long layovers are filtered out by default.
+      </div>
     </div>
 
-    <div id="results"></div>
+    <h2>Results</h2>
+    <div id="baseline" class="meta"></div>
+    <div id="results" class="results"></div>
   </div>
 
-<script>
-  const $ = (id) => document.getElementById(id);
+  <script>
+    // Defaults
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth()+1).padStart(2,"0");
+    const dd = String(today.getDate()).padStart(2,"0");
+    document.getElementById("dateInput").value = `${yyyy}-${mm}-${dd}`;
 
-  const today = new Date().toISOString().slice(0,10);
-  $("date").value = today;
+    // ===== AUTOCOMPLETE =====
+    const fromInput = document.getElementById("fromInput");
+    const toInput = document.getElementById("toInput");
+    const fromBox = document.getElementById("fromSuggest");
+    const toBox = document.getElementById("toSuggest");
 
-  async function places(q) {
-    const r = await fetch("/api/places?q=" + encodeURIComponent(q));
-    return r.json();
-  }
+    function showBox(box){ box.classList.remove("hidden"); }
+    function hideBox(box){ box.classList.add("hidden"); box.innerHTML=""; }
 
-  function wireAutocomplete(inputId, hintId) {
-    const el = $(inputId);
-    const hints = $(hintId);
-    let t = null;
-    el.addEventListener("input", () => {
-      clearTimeout(t);
-      const q = el.value.trim();
-      if (q.length < 2) { hints.innerHTML = ""; return; }
-      t = setTimeout(async () => {
-        try {
-          const data = await places(q);
-          hints.innerHTML = data.results.map(r => `<span class="tag" data-iata="${r.iata}">${r.city} (${r.iata})</span>`).join(" ");
-          hints.querySelectorAll(".tag").forEach(tag => {
-            tag.addEventListener("click", () => { el.value = tag.dataset.iata; hints.innerHTML = ""; });
-          });
-        } catch (e) { /* ignore */ }
-      }, 200);
-    });
-  }
-
-  wireAutocomplete("from","fromHints");
-
-  // show backend mode + key detection
-  fetch("/health").then(r=>r.json()).then(h=>{
-    const el = $("modeBanner");
-    if (!el) return;
-    el.textContent = `mode: ${h.mode}${h.hasAmadeusKeys ? "" : " (no keys)"}`;
-  }).catch(()=>{});
-
-  wireAutocomplete("to","toHints");
-
-  function money(n){ return "£" + (Math.round(n*100)/100).toFixed(2); }
-  function minsToHrs(m){ const h = Math.floor(m/60); const mm = m%60; return `${h}h ${mm}m`; }
-
-  function itineraryCard(it, title) {
-    const flags = [];
-    const risk = [];
-    if (it.legs.some(l=>l.tight)) risk.push("Tight transfer");
-    if (it.legs.some(l=>l.overnight)) risk.push("Overnight");
-    if (it.legs.some(l=>l.type==="TRAIN")) flags.push("🚄 Train");
-    const countries = it.countriesCount ? `${it.countriesCount} countries` : "";
-    const badge = risk.length ? `<span class="tag danger">⚠ ${risk.join(", ")}</span>` : `<span class="tag ok">OK</span>`;
-
-    return `
-      <div class="it">
-        <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
-          <div>
-            <div style="font-weight:800;font-size:16px">${title}</div>
-            <div class="muted small">${money(it.total_cost)} · ${minsToHrs(it.total_duration_min)} · ${it.legs.length-1} stops · ${countries} ${flags.join(" ")}</div>
-          </div>
-          <div>${badge}</div>
-        </div>
-        <div class="legs">
-          ${it.legs.map((l, idx) => `
-            <div class="leg">
-              <div>
-                <div style="font-weight:700">${l.type==="TRAIN"?"🚄":"✈️"} ${l.origin} → ${l.destination} <span class="muted small">${l.provider||""} ${l.airline?("· "+l.airline):""}</span></div>
-                <div class="small muted">${l.depart_ts ? (l.depart_ts.replace("T"," ").slice(0,16) + " → " + l.arrive_ts.replace("T"," ").slice(0,16)) : (l.notes || "Rail estimate")}</div>
-              </div>
-              <div style="text-align:right">
-                <div style="font-weight:800">${money(l.price_gbp)}</div>
-                <div class="small muted">${minsToHrs(l.duration_min)}</div>
-              </div>
-            </div>
-          `).join("")}
-        </div>
-        <div class="small muted" style="margin-top:8px">Score: ${Math.round(it.score)} · Pain: ${Math.round(it.pain)} · Extra countries bonus: ${it.extraCountries}</div>
-      </div>
-    `;
-  }
-
-  $("go").addEventListener("click", async () => {
-    const payload = {
-      from: $("from").value.trim() || null,
-      to: $("to").value.trim(),
-      date: $("date").value,
-      flexDays: Number($("flexDays").value),
-      originScope: $("originScope").value,
-      maxStops: Number($("maxStops").value),
-      adventureLevel: Number($("adventureLevel").value),
-      maxTotalHours: Number($("maxTotalHours").value),
-      minBufferMin: Number($("minBufferMin").value),
-      includeTrains: $("includeTrains").value === "true"
-    };
-
-    if (!payload.to) {
-      $("status").textContent = "Enter a destination.";
-      return;
+    function debounce(fn, ms=180){
+      let t;
+      return (...args) => {
+        clearTimeout(t);
+        t = setTimeout(() => fn(...args), ms);
+      };
     }
 
-    $("go").disabled = true;
-    $("status").textContent = "Searching…";
-    $("results").innerHTML = "";
+    async function fetchPlaces(q){
+      const r = await fetch(`/api/places?q=${encodeURIComponent(q)}`);
+      if(!r.ok) return [];
+      return await r.json();
+    }
 
-    try {
-      const r = await fetch("/api/search", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(payload) });
-      const data = await r.json();
-      if (data.error) {
-        $("results").innerHTML = `<div class="card"><div style="font-weight:800">Error</div><div class="muted">${data.error}</div></div>`;
-      } else {
-        const cards = [];
-        const itins = data.itineraries || [];
-        const labels = ["Cheapest", "Best value", "Fastest", "Cheapest w/ extra countries", "Train hack"];
-        for (let i=0; i<itins.length; i++) {
-          cards.push(itineraryCard(itins[i], labels[i] || ("Option " + (i+1))));
-        }
-        const baseline = data.baseline;
-        $("results").innerHTML = `
-          <div class="card">
-            <div style="font-weight:900;font-size:18px">Results</div>
-            <div class="muted small">Baseline cheapest: ${baseline ? (money(baseline.total_cost) + " · " + minsToHrs(baseline.total_duration_min)) : "—"}</div>
-            <div class="hr"></div>
-            ${cards.join("")}
-            <div class="hr"></div>
-            <div class="small muted">Tip: Try <b>NCL → DUS</b> with max stops 2–3 and trains enabled. If you add Amadeus keys on Railway, you’ll start seeing live offers on direct legs (provider coverage varies).</div>
+    function renderSuggestions(box, items, onPick){
+      if(!items.length){ hideBox(box); return; }
+      box.innerHTML = items.map(x => `
+        <div class="s-item" data-iata="${x.iata}">
+          <div class="s-code">${x.iata}</div>
+          <div>
+            <div class="s-city">${x.city}</div>
+            <div class="s-name">${x.name}</div>
+          </div>
+        </div>
+      `).join("");
+      showBox(box);
+      [...box.querySelectorAll(".s-item")].forEach(el => {
+        el.addEventListener("click", () => {
+          onPick(el.getAttribute("data-iata"));
+          hideBox(box);
+        });
+      });
+    }
+
+    const onFromType = debounce(async () => {
+      const q = fromInput.value.trim();
+      if(q.length < 2) return hideBox(fromBox);
+      const items = await fetchPlaces(q);
+      renderSuggestions(fromBox, items, (iata) => { fromInput.value = iata; });
+    });
+
+    const onToType = debounce(async () => {
+      const q = toInput.value.trim();
+      if(q.length < 2) return hideBox(toBox);
+      const items = await fetchPlaces(q);
+      renderSuggestions(toBox, items, (iata) => { toInput.value = iata; });
+    });
+
+    fromInput.addEventListener("input", onFromType);
+    toInput.addEventListener("input", onToType);
+
+    document.addEventListener("click", (e) => {
+      if(!fromBox.contains(e.target) && e.target !== fromInput) hideBox(fromBox);
+      if(!toBox.contains(e.target) && e.target !== toInput) hideBox(toBox);
+    });
+
+    // ===== RESULTS RENDERING =====
+    const resultsEl = document.getElementById("results");
+    const baselineEl = document.getElementById("baseline");
+
+    function fmtMoney(n){ return `£${Math.round(n)}`; }
+    function fmtMins(min){
+      const h = Math.floor(min/60);
+      const m = Math.round(min%60);
+      return `${h}h ${String(m).padStart(2,"0")}m`;
+    }
+    function legIcon(t){ return t === "TRAIN" ? "🚆" : "✈️"; }
+
+    function renderItinerary(title, r){
+      const countries = r.countriesCount || 0;
+      const stops = r.stops ?? (r.legs.length - 1);
+      const dur = r.total_duration_min || 0;
+
+      const head = `
+        <div class="itHead">
+          <div>
+            <div class="itTitle">${title}</div>
+            <div class="meta">${fmtMoney(r.total_cost)} · ${fmtMins(dur)} · ${stops} stops · ${countries} countries</div>
+          </div>
+          <div class="pill">OK</div>
+        </div>
+      `;
+
+      const legs = r.legs.map(l => {
+        const left = `
+          <div class="legLeft">
+            <div class="icon">${legIcon(l.type)}</div>
+            <div class="legMain">
+              <div class="route">${l.origin} → ${l.destination} <span style="opacity:.55">· ${l.provider}</span></div>
+              <div class="small">${l.type === "TRAIN" ? (l.note || "Rail estimate") : (l.airline ? `Airline: ${l.airline}` : "")}</div>
+            </div>
           </div>
         `;
-      }
-    } catch (e) {
-      $("results").innerHTML = `<div class="card"><div style="font-weight:800">Error</div><div class="muted">${String(e)}</div></div>`;
-    } finally {
-      $("go").disabled = false;
-      $("status").textContent = "";
+        const right = `
+          <div style="text-align:right">
+            <div class="price">${fmtMoney(l.price_gbp)}</div>
+            <div class="small">${l.duration_min ? fmtMins(l.duration_min) : ""}</div>
+            ${l.deep_link ? `<a class="link" href="${l.deep_link}" target="_blank" rel="noreferrer">Book</a>` : ``}
+          </div>
+        `;
+        return `<div class="leg">${left}${right}</div>`;
+      }).join("");
+
+      const chips = `
+        <div class="chiprow">
+          <div class="chip">Score: ${Math.round(r.score)}</div>
+          <div class="chip">Pain: ${Math.round(r.pain)}</div>
+          <div class="chip">Extra countries: ${r.extraCountries || 0}</div>
+        </div>
+      `;
+
+      return `<div class="it">${head}${legs}${chips}</div>`;
     }
-  });
-</script>
+
+    function pickTitles(picks){
+      const titles = ["Cheapest", "Best value", "Fastest", "Cheapest w/ extra countries", "Train-assisted"];
+      return picks.map((p, i) => ({ title: titles[i] || `Option ${i+1}`, route: p }));
+    }
+
+    async function runSearch(){
+      resultsEl.innerHTML = "";
+      baselineEl.textContent = "Searching…";
+
+      const body = {
+        from: fromInput.value.trim() || null,
+        to: toInput.value.trim(),
+        date: document.getElementById("dateInput").value,
+        flexDays: Number(document.getElementById("flexInput").value),
+        originScope: document.getElementById("scopeInput").value,
+        maxStops: Number(document.getElementById("stopsInput").value),
+        adventureLevel: Number(document.getElementById("advInput").value),
+        maxTotalHours: Number(document.getElementById("maxHoursInput").value),
+        minBufferMin: Number(document.getElementById("bufferInput").value),
+        includeTrains: document.getElementById("trainsInput").value === "1"
+      };
+
+      if(!body.to || body.to.length !== 3){
+        baselineEl.textContent = "Enter a destination IATA code (e.g. DUS, IST, BUD).";
+        return;
+      }
+
+      const r = await fetch("/api/search", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify(body)
+      });
+
+      const j = await r.json();
+
+      if(j.error){
+        baselineEl.textContent = j.error;
+        return;
+      }
+
+      baselineEl.textContent = `Mode: ${j.mode.toUpperCase()} · Provider: ${j.provider} · Showing top ${j.picks.length} hacks`;
+
+      const items = pickTitles(j.picks);
+      resultsEl.innerHTML = items.map(x => renderItinerary(x.title, x.route)).join("");
+
+      if(!j.picks.length){
+        resultsEl.innerHTML = `<div class="meta">No routes found. Try a bigger origin scope or more stops.</div>`;
+      }
+    }
+
+    document.getElementById("goBtn").addEventListener("click", runSearch);
+  </script>
 </body>
 </html>
