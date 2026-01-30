@@ -125,25 +125,35 @@ app.get("/health", (req, res) => {
 /* ================= AUTOCOMPLETE ================= */
 
 app.get("/api/places", (req, res) => {
-  res.setHeader("Cache-Control", "no-store"); // stop iOS/CDN 304 weirdness
+  res.setHeader("Cache-Control", "no-store");
 
   const q = String(req.query.q || "").toLowerCase().trim();
   if (q.length < 2) return res.json([]);
 
   const out = airports
     .filter(a => {
-      const code = String(a.code || a.iata || "").toLowerCase();
+      const iata = String(a.iata || "").toLowerCase();
       const city = String(a.city || "").toLowerCase();
       const name = String(a.name || "").toLowerCase();
-      return code.includes(q) || city.includes(q) || name.includes(q);
+      const metro = String(a.metro || "").toLowerCase();
+      const country = String(a.country || "").toLowerCase();
+
+      return (
+        iata.includes(q) ||
+        city.includes(q) ||
+        name.includes(q) ||
+        metro.includes(q) ||
+        country === q
+      );
     })
     .slice(0, 12)
     .map(a => ({
-      // return BOTH keys so your frontend works no matter what it expects
-      code: String(a.code || a.iata || "").toUpperCase(),
-      iata: String(a.code || a.iata || "").toUpperCase(),
+      // IMPORTANT: your index.html uses x.iata
+      iata: String(a.iata || "").toUpperCase(),
       city: a.city || "",
-      name: a.name || ""
+      name: a.name || "",
+      country: a.country || "",
+      metro: a.metro || ""
     }));
 
   res.json(out);
