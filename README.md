@@ -66,3 +66,10 @@ These are now the UI defaults in this build.
 ### Recordings
 Recorded Amadeus responses are saved to `recordings/` and reused automatically.
 Set `DATA_MODE=REPLAY` to test with **zero** external calls.
+
+
+## Turkey coverage
+Added airports: IST, SAW, AYT, ADB, DLM, BJV. Hubs include IST/SAW/AYT/ADB.
+
+## Live data troubleshooting on Railway
+Open `/health` and `/api/debug` on your deployed URL. If `hasAmadeusKeys` is false, Railway variables are not attached to the service.

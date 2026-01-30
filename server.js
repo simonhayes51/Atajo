@@ -260,7 +260,7 @@ function pickOrigins(from, originScope) {
 
   const mode = dataMode();
   if (mode === "LIVE" || mode === "REPLAY") {
-    if (originScope === "EUROPE") return uniq([...uk, "AMS","BRU","BCN","MAD","MXP","BGY","CDG","LIS","DUS","BER","PRG","BUD","VIE"]);
+    if (originScope === "EUROPE") return uniq([...uk, "AMS","BRU","BCN","MAD","MXP","BGY","CDG","LIS","DUS","BER","PRG","BUD","VIE","IST","SAW","AYT","ADB"]);
     return uk;
   }
   if (originScope === "EUROPE") return uniq([...HUBS, ...uk]);
@@ -316,7 +316,7 @@ async function buildItineraries({ from, to, date, flexDays, maxStops, includeTra
   const budget = { remaining: API_BUDGET_DEFAULT };
 
   // Destination-first hub pruning (low calls)
-  const baseHubs = uniq(["DUB","AMS","BRU","CRL","CDG","ORY","BVA","BCN","MAD","LIS","OPO","MXP","BGY","FRA","HHN","CGN","BER","PRG","BUD","VIE","CPH"]);
+  const baseHubs = uniq(["DUB","AMS","BRU","CRL","CDG","ORY","BVA","BCN","MAD","LIS","OPO","MXP","BGY","FRA","HHN","CGN","BER","PRG","BUD","VIE","CPH","IST","SAW","AYT","ADB"]);
   let hubs = baseHubs.filter(h => !dests.includes(h) && h !== from);
 
   const baseDate = new Date(date);
@@ -445,7 +445,19 @@ async function buildItineraries({ from, to, date, flexDays, maxStops, includeTra
   };
 }
 
-app.get("/health", (req,res)=>res.json({ ok:true, name:"atajo-mvp", mode: dataMode() }));
+app.get("/health", (req,res)=>res.json({ ok:true, name:"atajo-mvp", mode: dataMode(), hasAmadeusKeys: Boolean(process.env.AMADEUS_KEY && process.env.AMADEUS_SECRET), apiBudgetDefault: API_BUDGET_DEFAULT, legCacheTtlMs: LEG_CACHE_TTL_MS }));
+
+app.get("/api/debug", (req,res) => {
+  const files = fs.existsSync(REC_DIR) ? fs.readdirSync(REC_DIR).filter(f=>f.endsWith(".json")).slice(0, 25) : [];
+  res.json({
+    mode: dataMode(),
+    hasAmadeusKeys: Boolean(process.env.AMADEUS_KEY && process.env.AMADEUS_SECRET),
+    apiBudgetDefault: API_BUDGET_DEFAULT,
+    legCacheSize: LEG_CACHE.size,
+    recordingsCount: fs.existsSync(REC_DIR) ? fs.readdirSync(REC_DIR).filter(f=>f.endsWith(".json")).length : 0,
+    sampleRecordings: files
+  });
+});
 
 app.get("/api/places", (req,res) => {
   const q = String(req.query.q || "").trim().toLowerCase();
