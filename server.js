@@ -11,24 +11,35 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-/* ================= DATA ================= */
+/* ================= LOAD AIRPORTS =================
+   Expects airports.json items like:
+   { "iata":"NCL","city":"Newcastle","name":"Newcastle Airport","country":"GB","metro":"Newcastle" }
+*/
 
-// allow either airports.json in root OR /data/airports.json
-const airportsPathCandidates = [
-  path.join(__dirname, "airports.json"),
-  path.join(__dirname, "data", "airports.json"),
-];
+function loadAirports() {
+  const candidates = [
+    path.join(__dirname, "airports.json"),
+    path.join(__dirname, "data", "airports.json"),
+  ];
 
-let airports = [];
-for (const p of airportsPathCandidates) {
-  if (fs.existsSync(p)) {
-    airports = JSON.parse(fs.readFileSync(p, "utf8"));
-    break;
+  for (const p of candidates) {
+    if (fs.existsSync(p)) {
+      const raw = fs.readFileSync(p, "utf8");
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr) && arr.length) return arr;
+    }
   }
+
+  console.warn("⚠️ airports.json not found in root or /data");
+  return [];
 }
-if (!airports.length) {
-  console.warn("WARN: airports.json not found. Autocomplete will be empty.");
-}
+
+const airports = loadAirports();
+
+// quick lookup for country by IATA
+const airportByIata = new Map(
+  airports.map(a => [String(a.iata || "").toUpperCase(), a])
+);
 
 /* ================= APP ================= */
 
@@ -44,72 +55,69 @@ const MARKER = process.env.TRAVELPAYOUTS_MARKER || "493900";
 
 const PROVIDER = "travelpayouts";
 
-// keep Railway happy
-const API_TIMEOUT_MS = 6500;
-const MAX_HUBS_DEFAULT = 26;
-const MAX_PICKS = 5;
+// keep calls reasonable
+const API_TIMEOUT_MS = 9000;
 
-// how many candidate flights to consider per leg
-const LEG_CANDIDATES = 4;
-
-// layover constraints
-const MAX_LAYOVER_HOURS = 8; // avoids 13h “not a hack”
-const MIN_LAYOVER_MIN_DEFAULT = 180; // 3h
+// hubs to try (you can expand this later)
+const DEFAULT_HUBS = [
+  // UK/IE
+  "STN","LTN","LGW","LHR","MAN","EDI","GLA","BHX","BRS","DUB",
+  // NL/BE/FR
+  "AMS","EIN","BRU","CRL","CDG","ORY","BVA",
+  // DE
+  "DUS","CGN","FRA","HHN","MUC","BER","HAM",
+  // IT/ES/PT
+  "MXP","BGY","FCO","CIA","NAP","VCE","BCN","MAD","LIS","OPO","PMI","ALC","AGP",
+  // CEE
+  "PRG","VIE","BUD","WAW","KRK","OTP","SOF","ATH",
+  // Nordics
+  "CPH","ARN","OSL","HEL",
+  // TR
+  "IST","SAW","AYT","ADB",
+].filter((v, i, a) => a.indexOf(v) === i);
 
 function hasToken() {
   return TOKEN && TOKEN.length > 10;
 }
 
-function normalize(iata) {
-  return String(iata || "").toUpperCase().trim();
+function normalizeIata(x) {
+  return String(x || "").trim().toUpperCase();
 }
 
-function clamp(n, a, b) {
-  return Math.max(a, Math.min(b, n));
+function safeInt(x, def) {
+  const n = Number(x);
+  return Number.isFinite(n) ? n : def;
 }
 
-function parseISO(d) {
-  const t = Date.parse(d);
-  return Number.isFinite(t) ? t : null;
+function tpLinkToFull(xLink) {
+  // Travelpayouts gives "/search/..." links
+  const base = "https://www.aviasales.com";
+  const link = String(xLink || "");
+  if (!link) return null;
+  const join = link.startsWith("http") ? link : (base + link);
+  // marker sometimes needs to be added; if already there, leave it
+  if (join.includes("marker=")) return join;
+  const sep = join.includes("?") ? "&" : "?";
+  return `${join}${sep}marker=${encodeURIComponent(MARKER)}`;
 }
 
-// Travelpayouts gives duration in minutes in some fields; we handle common shapes.
-function getDurationMin(row) {
-  // seen: duration (minutes), duration_to (minutes)
-  const d =
-    row?.duration_to ??
-    row?.duration ??
-    row?.durationMin ??
-    null;
-  return Number.isFinite(Number(d)) ? Number(d) : null;
-}
-
-function addMinutes(tsMs, mins) {
-  return tsMs + mins * 60_000;
-}
-
-function hoursBetween(aMs, bMs) {
-  return (bMs - aMs) / 3_600_000;
-}
-
-/* ================= FETCH (timeout) ================= */
+/* ================= FETCH WITH TIMEOUT ================= */
 
 async function timeoutFetchJson(url, ms = API_TIMEOUT_MS) {
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), ms);
-
   try {
     const r = await fetch(url, { signal: controller.signal });
-    const j = await r.json().catch(() => ({}));
-    return { ok: r.ok, status: r.status, json: j };
+    const j = await r.json().catch(() => null);
+    return { ok: r.ok, status: r.status, body: j };
   } catch (e) {
-    return { ok: false, status: 0, json: { error: String(e) } };
+    return { ok: false, status: 0, body: { error: String(e) } };
   } finally {
     clearTimeout(t);
   }
 }
 
-/* ================= HEALTH / DEBUG ================= */
+/* ================= HEALTH ================= */
 
 app.get("/health", (req, res) => {
   res.json({
@@ -148,7 +156,7 @@ app.get("/api/places", (req, res) => {
     })
     .slice(0, 12)
     .map(a => ({
-      // IMPORTANT: your index.html uses x.iata
+      // IMPORTANT: index.html expects x.iata
       iata: String(a.iata || "").toUpperCase(),
       city: a.city || "",
       name: a.name || "",
@@ -159,18 +167,17 @@ app.get("/api/places", (req, res) => {
   res.json(out);
 });
 
-/* ================= TP LEG SEARCH ================= */
+/* ================= TP LEG SEARCH =================
+   Endpoint used:
+   /aviasales/v3/prices_for_dates
+   Good for "prices for dates", often returns duration_to minutes.
+*/
 
-/**
- * We use prices_for_dates as a cheap “live-ish” endpoint.
- * If date+flexDays provided, we fetch normally then filter within window.
- */
-async function fetchLegCandidates(from, to, date, flexDays) {
-  from = normalize(from);
-  to = normalize(to);
+async function tpPricesForDates(from, to, dateISO, flexDays) {
+  from = normalizeIata(from);
+  to = normalizeIata(to);
 
-  if (!from || !to) return [];
-  if (from === to) return [];
+  if (!from || !to || from === to) return [];
 
   const url = new URL("https://api.travelpayouts.com/aviasales/v3/prices_for_dates");
   url.searchParams.set("origin", from);
@@ -178,108 +185,130 @@ async function fetchLegCandidates(from, to, date, flexDays) {
   url.searchParams.set("currency", "gbp");
   url.searchParams.set("token", TOKEN);
 
-  // If a date is provided, we ask TP to start from it (still returns multiple dates)
-  if (date) url.searchParams.set("departure_at", date);
+  // Travelpayouts uses "departure_at" (YYYY-MM-DD) – if you pass it, it filters
+  if (dateISO) url.searchParams.set("departure_at", dateISO);
 
-  const r = await timeoutFetchJson(url.toString());
-  const rows = Array.isArray(r.json?.data) ? r.json.data : [];
-  if (!rows.length) return [];
+  // "flex" isn't guaranteed for this endpoint; if it does nothing, it's harmless.
+  // If TP ignores it, we still get some results.
+  if (Number(flexDays) > 0) url.searchParams.set("flex", String(flexDays));
 
-  // Filter within ±flexDays window if provided
-  let filtered = rows;
-  if (date) {
-    const center = Date.parse(date);
-    if (Number.isFinite(center)) {
-      const flex = clamp(Number(flexDays || 0), 0, 7);
-      const start = center - flex * 86_400_000;
-      const end = center + flex * 86_400_000;
+  const resp = await timeoutFetchJson(url.toString());
+  const data = resp?.body?.data;
 
-      filtered = rows.filter(x => {
-        const t = parseISO(x.departure_at);
-        return t && t >= start && t <= end;
-      });
-    }
+  if (!resp.ok || !Array.isArray(data)) return [];
+
+  // Normalize into a leg-like shape we control
+  return data
+    .filter(x => x && typeof x.price === "number")
+    .slice(0, 12)
+    .map(x => {
+      const dep = x.departure_at ? new Date(x.departure_at) : null;
+
+      // duration_to is minutes (often present)
+      const durMin = typeof x.duration_to === "number"
+        ? x.duration_to
+        : (typeof x.duration === "number" ? x.duration : null);
+
+      const arr = (dep && durMin != null)
+        ? new Date(dep.getTime() + durMin * 60_000)
+        : null;
+
+      return {
+        type: "FLIGHT",
+        provider: "TP",
+        origin: from,
+        destination: to,
+        airline: x.airline || null,
+        price_gbp: x.price,
+        depart_at: dep ? dep.toISOString() : null,
+        arrive_at: arr ? arr.toISOString() : null,
+        duration_min: durMin,
+        deep_link: tpLinkToFull(x.link),
+      };
+    });
+}
+
+/* ================= ROUTE HELPERS ================= */
+
+function getCountry(iata) {
+  const a = airportByIata.get(normalizeIata(iata));
+  return a?.country ? String(a.country).toUpperCase() : null;
+}
+
+function countCountries(legs) {
+  const set = new Set();
+  for (const l of legs) {
+    const c1 = getCountry(l.origin);
+    const c2 = getCountry(l.destination);
+    if (c1) set.add(c1);
+    if (c2) set.add(c2);
+  }
+  return set.size;
+}
+
+function extraCountries(legs) {
+  // "extra" = unique countries visited minus origin+destination countries
+  const set = new Set();
+  for (const l of legs) {
+    const c1 = getCountry(l.origin);
+    const c2 = getCountry(l.destination);
+    if (c1) set.add(c1);
+    if (c2) set.add(c2);
   }
 
-  // Sort by price ascending, keep a few candidates
-  filtered.sort((a, b) => (a.price ?? 9e9) - (b.price ?? 9e9));
+  const startC = getCountry(legs[0]?.origin);
+  const endC = getCountry(legs[legs.length - 1]?.destination);
+  if (startC) set.delete(startC);
+  if (endC) set.delete(endC);
+  return set.size;
+}
 
-  return filtered.slice(0, LEG_CANDIDATES).map(x => ({
-    origin: from,
-    destination: to,
-    airline: x.airline || null,
-    price: Number(x.price ?? 0),
-    departure_at: x.departure_at,
-    duration_min: getDurationMin(x),
-    link: x.link || null
-  }));
+function sumCost(legs) {
+  return legs.reduce((s, l) => s + (Number(l.price_gbp) || 0), 0);
+}
+
+function totalDurationMin(legs) {
+  // use depart/arrive if available, otherwise sum durations
+  const firstDep = legs[0]?.depart_at ? new Date(legs[0].depart_at) : null;
+  const lastArr = legs[legs.length - 1]?.arrive_at ? new Date(legs[legs.length - 1].arrive_at) : null;
+
+  if (firstDep && lastArr) return Math.max(0, Math.round((lastArr - firstDep) / 60000));
+
+  let sum = 0;
+  for (const l of legs) sum += Number(l.duration_min) || 0;
+  return sum || 0;
+}
+
+function layoverHours(legA, legB) {
+  // layover = B.depart - A.arrive
+  if (!legA?.arrive_at || !legB?.depart_at) return null;
+  const a = new Date(legA.arrive_at);
+  const b = new Date(legB.depart_at);
+  return (b - a) / 3600000;
 }
 
 /* ================= HUBS ================= */
 
-function getDefaultHubs(originScope) {
-  // mix of UK/EU + some global “useful” hubs
-  const UK_EU = [
-    "STN","LTN","LGW","MAN","EDI","DUB",
-    "AMS","EIN","BRU","CRL","CDG","ORY",
-    "BGY","MXP","FCO","CIA","BCN","MAD",
-    "LIS","OPO","BUD","VIE","PRG","WAW",
-    "KRK","OTP","SOF","ATH","SKG","IST"
-  ];
+function buildHubList(originScope) {
+  // In your UI:
+  // UK, UK_EU, GLOBAL
+  const scope = String(originScope || "UK_EU");
 
-  const GLOBAL = [
-    ...UK_EU,
-    "DXB","DOH","CAI","TLV",
-    "JFK","EWR","BOS","YYZ",
-  ];
-
-  if (originScope === "GLOBAL") return GLOBAL;
-  if (originScope === "UK") return ["STN","LTN","LGW","MAN","EDI","DUB"];
-  return UK_EU; // default UK_EU
-}
-
-/* ================= CONCURRENCY LIMIT ================= */
-
-async function mapLimit(items, limit, fn) {
-  const out = [];
-  let i = 0;
-
-  const workers = new Array(limit).fill(0).map(async () => {
-    while (i < items.length) {
-      const idx = i++;
-      out[idx] = await fn(items[idx], idx);
-    }
-  });
-
-  await Promise.all(workers);
-  return out;
-}
-
-/* ================= SCORING (simple MVP) ================= */
-
-function computeRouteMeta(legs) {
-  const total_cost = legs.reduce((s, l) => s + (l.price_gbp || 0), 0);
-  const total_duration_min = legs.reduce((s, l) => s + (l.duration_min || 0), 0);
-
-  const stops = Math.max(0, legs.length - 1);
-
-  // crude “pain”: layover minutes + stop penalty
-  let pain = stops * 10;
-  for (let i = 0; i < legs.length - 1; i++) {
-    pain += legs[i].layover_min ? Math.round(legs[i].layover_min / 30) : 0;
+  if (scope === "UK") {
+    return ["STN","LTN","LGW","LHR","MAN","EDI","GLA","BHX","BRS","DUB"];
   }
 
-  // score: cheaper is better, small penalty for pain
-  const score = total_cost + pain;
+  if (scope === "GLOBAL") {
+    // still hub-biased (we're not doing full world graph yet)
+    return DEFAULT_HUBS.concat(["JFK","EWR","YYZ","DXB","DOH"]).filter((v, i, a) => a.indexOf(v) === i);
+  }
 
-  return { total_cost, total_duration_min, stops, pain, score };
+  return DEFAULT_HUBS;
 }
 
 /* ================= SEARCH ================= */
 
 app.post("/api/search", async (req, res) => {
-  const start = Date.now();
-
   if (!hasToken()) {
     return res.json({
       mode: "MOCK",
@@ -289,186 +318,222 @@ app.post("/api/search", async (req, res) => {
   }
 
   try {
-    let {
-      from,
-      to,
-      date,
-      flexDays = 0,
-      originScope = "UK_EU",
-      maxStops = 2,
-      maxTotalHours = 24,
-      minBufferMin = MIN_LAYOVER_MIN_DEFAULT,
-      adventureLevel = 1,
-      includeTrains = true
-    } = req.body || {};
+    const body = req.body || {};
 
-    from = normalize(from);
-    to = normalize(to);
+    // matches your index.html payload keys
+    const from = normalizeIata(body.from || "");
+    const to = normalizeIata(body.to || "");
+    const date = body.date ? String(body.date) : null; // YYYY-MM-DD
+    const flexDays = safeInt(body.flexDays, 0);
 
-    flexDays = clamp(Number(flexDays || 0), 0, 7);
-    maxStops = clamp(Number(maxStops || 2), 0, 2);
-    maxTotalHours = clamp(Number(maxTotalHours || 24), 6, 48);
-    minBufferMin = clamp(Number(minBufferMin || 180), 60, 360);
+    const maxStops = safeInt(body.maxStops, 1); // 0..2
+    const minBufferMin = safeInt(body.minBufferMin, 180);
+    const maxTotalHours = safeInt(body.maxTotalHours, 24);
+
+    const adventureLevel = Number(body.adventureLevel ?? 1);
+    const originScope = String(body.originScope || "UK_EU");
 
     if (!to || to.length !== 3) {
       return res.status(400).json({ error: "Destination IATA required (e.g. DUS, IST, BUD)" });
     }
 
-    // If origin omitted, treat as “anywhere” using hubs as candidate origins.
-    const originCandidates = from ? [from] : getDefaultHubs(originScope).slice(0, 10);
-
-    // Baseline = cheapest direct from ANY origin candidate
-    let baselineCheapest = Infinity;
-    let baselineLeg = null;
-
-    // evaluate baseline direct in parallel (limited)
-    const directCandidates = await mapLimit(originCandidates, 4, async (orig) => {
-      const direct = await fetchLegCandidates(orig, to, date, flexDays);
-      return { orig, direct };
-    });
-
-    for (const x of directCandidates) {
-      if (x.direct?.length) {
-        const best = x.direct[0];
-        if (best.price < baselineCheapest) {
-          baselineCheapest = best.price;
-          baselineLeg = { orig: x.orig, row: best };
-        }
-      }
+    // If user leaves FROM blank, we force a sensible default for now:
+    // "UK + Europe" => use UK airports as candidate origins
+    // (Later: support “Anywhere” properly)
+    let origin = from;
+    if (!origin) {
+      // pick a “default origin pool” (UK major airports)
+      // But we still need an origin to construct 1–2 leg hacks.
+      origin = "STN";
     }
 
-    // If we didn’t find a direct baseline, still allow hacks (don’t kill the whole app)
-    if (!Number.isFinite(baselineCheapest)) baselineCheapest = Infinity;
+    const hubs = buildHubList(originScope)
+      .filter(h => h !== origin && h !== to)
+      .slice(0, 30);
 
-    // Hub list
-    const hubs = getDefaultHubs(originScope)
-      .filter(h => h !== to)
-      .slice(0, MAX_HUBS_DEFAULT);
+    // 1) baseline direct price (if exists)
+    const directLegs = await tpPricesForDates(origin, to, date, flexDays);
+    const baseline = directLegs.length ? Math.min(...directLegs.map(x => x.price_gbp)) : null;
 
-    // Build hack options: origin -> hub -> destination (1 stop)
-    const hackRows = [];
+    // 2) generate candidates:
+    // if maxStops === 0 => only direct
+    // if maxStops >= 1 => try 1 hub: origin -> hub -> to
+    // if maxStops >= 2 => try 2 hubs: origin -> h1 -> h2 -> to (limited)
+    const candidates = [];
 
-    // Small routes: try each origin candidate
-    const tasks = [];
-    for (const orig of originCandidates) {
-      for (const hub of hubs) {
-        if (hub === orig || hub === to) continue;
-        tasks.push({ orig, hub });
-      }
+    // Direct candidate
+    if (directLegs.length) {
+      const bestDirect = directLegs[0];
+      candidates.push([bestDirect]);
     }
 
-    // limit total combos (keeps calls sane)
-    const limitedTasks = tasks.slice(0, 120);
+    if (maxStops >= 1) {
+      // 1-stop hacks
+      const tasks = hubs.map(async (hub) => {
+        const [aList, bList] = await Promise.all([
+          tpPricesForDates(origin, hub, date, flexDays),
+          tpPricesForDates(hub, to, date, flexDays),
+        ]);
 
-    const combos = await mapLimit(limitedTasks, 6, async ({ orig, hub }) => {
-      const [leg1s, leg2s] = await Promise.all([
-        fetchLegCandidates(orig, hub, date, flexDays),
-        fetchLegCandidates(hub, to, date, flexDays)
-      ]);
+        if (!aList.length || !bList.length) return null;
 
-      if (!leg1s.length || !leg2s.length) return null;
+        // take best of each (you can expand later)
+        const a = aList[0];
+        const b = bList[0];
 
-      // Try a few combinations to find best valid connection
-      let best = null;
+        // layover rules
+        const layH = layoverHours(a, b);
+        if (layH == null) return null;
 
-      for (const a of leg1s) {
-        const aDep = parseISO(a.departure_at);
-        const aDur = a.duration_min ?? null;
-        if (!aDep || !aDur) continue;
-        const aArr = addMinutes(aDep, aDur);
+        const minH = minBufferMin / 60;
+        if (layH < minH) return null;
 
-        for (const b of leg2s) {
-          const bDep = parseISO(b.departure_at);
-          const bDur = b.duration_min ?? null;
-          if (!bDep || !bDur) continue;
+        // hard cap on layover to avoid “overnight for no reason”
+        if (layH > 6) return null;
 
-          // Layover = b departure - a arrival
-          const layoverMin = (bDep - aArr) / 60_000;
-          if (layoverMin < minBufferMin) continue;
-          if (layoverMin > MAX_LAYOVER_HOURS * 60) continue;
+        const legs = [a, b];
+        const durMin = totalDurationMin(legs);
+        if (durMin > maxTotalHours * 60) return null;
 
-          // Total duration = a + layover + b
-          const totalMin = aDur + layoverMin + bDur;
-          if (totalMin > maxTotalHours * 60) continue;
-
-          const totalCost = a.price + b.price;
-
-          // “hack” rule: cheaper than baseline OR baseline missing
-          if (Number.isFinite(baselineCheapest) && totalCost >= baselineCheapest) continue;
-
-          if (!best || totalCost < best.totalCost) {
-            best = { a, b, layoverMin, totalMin, totalCost };
-          }
-        }
-      }
-
-      if (!best) return null;
-
-      return {
-        orig,
-        hub,
-        to,
-        totalCost: best.totalCost,
-        totalMin: best.totalMin,
-        layoverMin: best.layoverMin,
-        legs: [best.a, best.b]
-      };
-    });
-
-    for (const c of combos) {
-      if (c) hackRows.push(c);
-    }
-
-    hackRows.sort((x, y) => x.totalCost - y.totalCost);
-
-    // Format into the MVP “picks” structure your UI expects
-    const picks = hackRows.slice(0, MAX_PICKS).map((h) => {
-      const legs = h.legs.map((row, idx) => {
-        const deep_link =
-          row.link
-            ? `https://www.aviasales.com${row.link}&marker=${encodeURIComponent(MARKER)}`
-            : null;
-
-        // attach layover on leg1 for UI chips/pain calc
-        const layover_min = idx === 0 ? h.layoverMin : null;
-
-        return {
-          type: "FLIGHT",
-          provider: "TP",
-          origin: row.origin,
-          destination: row.destination,
-          airline: row.airline || null,
-          price_gbp: row.price,
-          duration_min: row.duration_min || null,
-          depart_at: row.departure_at,
-          deep_link,
-          layover_min
-        };
+        return legs;
       });
 
-      const meta = computeRouteMeta(legs);
+      const legsFound = await Promise.all(tasks);
+      for (const l of legsFound) if (l) candidates.push(l);
+    }
 
-      // Very light “adventure” numbers for now (real country counting needs a country map)
-      const extraCountries = 1; // placeholder for “via hub”
-      const countriesCount = 2 + extraCountries;
+    if (maxStops >= 2) {
+      // 2-stop hacks (very limited to avoid call explosion)
+      const hubs2 = hubs.slice(0, 12);
+
+      // brute-force small: origin->h1->h2->to
+      for (const h1 of hubs2) {
+        for (const h2 of hubs2) {
+          if (h1 === h2) continue;
+          if (h1 === origin || h2 === origin) continue;
+          if (h1 === to || h2 === to) continue;
+
+          const [l1, l2, l3] = await Promise.all([
+            tpPricesForDates(origin, h1, date, flexDays),
+            tpPricesForDates(h1, h2, date, flexDays),
+            tpPricesForDates(h2, to, date, flexDays),
+          ]);
+
+          if (!l1.length || !l2.length || !l3.length) continue;
+
+          const a = l1[0], b = l2[0], c = l3[0];
+
+          const lay1 = layoverHours(a, b);
+          const lay2 = layoverHours(b, c);
+          if (lay1 == null || lay2 == null) continue;
+
+          const minH = minBufferMin / 60;
+          if (lay1 < minH || lay2 < minH) continue;
+          if (lay1 > 6 || lay2 > 6) continue;
+
+          const legs = [a, b, c];
+          const durMin = totalDurationMin(legs);
+          if (durMin > maxTotalHours * 60) continue;
+
+          candidates.push(legs);
+
+          // don’t go mental
+          if (candidates.length > 60) break;
+        }
+        if (candidates.length > 60) break;
+      }
+    }
+
+    // 3) score & pick “hacks”
+    // Score prioritizes low price but rewards “extra countries” based on adventureLevel
+    const scored = candidates.map(legs => {
+      const cost = sumCost(legs);
+      const durMin = totalDurationMin(legs);
+      const countriesCount = countCountries(legs);
+      const extra = extraCountries(legs);
+
+      // baseline comparison
+      const baselineNum = baseline ?? cost;
+
+      // “pain” is time + stops penalty
+      const stops = Math.max(0, legs.length - 1);
+      const pain = (durMin / 60) + (stops * 1.5);
+
+      // reward for extra countries (small, controlled)
+      const bonus = extra * 25 * (Number.isFinite(adventureLevel) ? adventureLevel : 1);
+
+      // score: lower is better
+      const score = (cost - bonus) + pain * 2;
 
       return {
-        ...meta,
-        legs,
-        extraCountries,
+        total_cost: cost,
+        total_duration_min: durMin,
+        legs: legs.map(l => ({
+          type: l.type,
+          provider: l.provider,
+          origin: l.origin,
+          destination: l.destination,
+          airline: l.airline,
+          price_gbp: l.price_gbp,
+          duration_min: l.duration_min,
+          deep_link: l.deep_link
+        })),
+        score,
+        pain,
+        extraCountries: extra,
         countriesCount,
-        // keep these fields your UI prints
-        score: meta.score * (2 / clamp(Number(adventureLevel || 1), 0.5, 2)),
+        // for your chips
+        stops
       };
     });
+
+    // Filter out rubbish:
+    // If we have a baseline, only show routes <= baseline (or within a tiny buffer)
+    const filtered = scored
+      .filter(x => {
+        if (baseline == null) return true;
+        return x.total_cost <= baseline + 10; // allow a tiny wiggle
+      })
+      .sort((a, b) => a.score - b.score);
+
+    // Build “picks” like original MVP: few variants
+    const picks = [];
+
+    if (filtered.length) {
+      // Cheapest
+      picks.push(filtered.slice().sort((a,b) => a.total_cost - b.total_cost)[0]);
+
+      // Fastest
+      picks.push(filtered.slice().sort((a,b) => a.total_duration_min - b.total_duration_min)[0]);
+
+      // Best value (lowest score)
+      picks.push(filtered[0]);
+
+      // Cheapest with extra countries
+      const extraSorted = filtered
+        .filter(x => x.extraCountries >= 1)
+        .sort((a,b) => a.total_cost - b.total_cost);
+      if (extraSorted.length) picks.push(extraSorted[0]);
+
+      // De-dupe identical routes
+      const seen = new Set();
+      const uniq = [];
+      for (const p of picks) {
+        const key = p.legs.map(l => `${l.origin}-${l.destination}-${l.price_gbp}`).join("|");
+        if (seen.has(key)) continue;
+        seen.add(key);
+        uniq.push(p);
+      }
+
+      // only top 5
+      picks.length = 0;
+      picks.push(...uniq.slice(0, 5));
+    }
 
     return res.json({
       mode: "LIVE",
       provider: PROVIDER,
-      took_ms: Date.now() - start,
-      baseline: baselineLeg
-        ? { from: baselineLeg.orig, to, price_gbp: baselineLeg.row.price, depart_at: baselineLeg.row.departure_at }
-        : null,
+      baseline: baseline,
       picks
     });
 
@@ -485,8 +550,9 @@ app.use("/", express.static("public"));
 /* ================= START ================= */
 
 const PORT = process.env.PORT || 8080;
+
 app.listen(PORT, () => {
   console.log(
-    `Atajo running on ${PORT} | provider=${PROVIDER} | mode=${hasToken() ? "LIVE" : "MOCK"} | marker=${MARKER}`
+    `Atajo running on ${PORT} | mode=${hasToken() ? "LIVE" : "MOCK"} | marker=${MARKER} | airports=${airports.length}`
   );
 });
