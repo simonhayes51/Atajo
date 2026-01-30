@@ -403,5 +403,59 @@
     "lat": 28.0445,
     "lon": -16.5725,
     "metro": "Canaries"
+  },
+  {
+    "iata": "IST",
+    "name": "Istanbul Airport",
+    "city": "Istanbul",
+    "country": "TR",
+    "lat": 41.2753,
+    "lon": 28.7519,
+    "metro": "Istanbul"
+  },
+  {
+    "iata": "SAW",
+    "name": "Sabiha G\u00f6k\u00e7en",
+    "city": "Istanbul",
+    "country": "TR",
+    "lat": 40.8986,
+    "lon": 29.3092,
+    "metro": "Istanbul"
+  },
+  {
+    "iata": "AYT",
+    "name": "Antalya",
+    "city": "Antalya",
+    "country": "TR",
+    "lat": 36.8987,
+    "lon": 30.8005,
+    "metro": "Antalya"
+  },
+  {
+    "iata": "ADB",
+    "name": "Izmir Adnan Menderes",
+    "city": "Izmir",
+    "country": "TR",
+    "lat": 38.2924,
+    "lon": 27.157,
+    "metro": "Izmir"
+  },
+  {
+    "iata": "DLM",
+    "name": "Dalaman",
+    "city": "Dalaman",
+    "country": "TR",
+    "lat": 36.7131,
+    "lon": 28.7925,
+    "metro": "Dalaman"
+  },
+  {
+    "iata": "BJV",
+    "name": "Milas\u2013Bodrum",
+    "city": "Bodrum",
+    "country": "TR",
+    "lat": 37.2506,
+    "lon": 27.6643,
+    "metro": "Bodrum"
   }
 ]
