@@ -3,7 +3,19 @@ import fetch from "node-fetch";
 import cors from "cors";
 import morgan from "morgan";
 
-import airports from "./airports.json" assert { type: "json" };
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const airports = JSON.parse(
+  fs.readFileSync(
+    path.join(__dirname, "airports.json"),
+    "utf8"
+  )
+);
 
 const app = express();
 
