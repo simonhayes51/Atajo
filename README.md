@@ -73,3 +73,14 @@ Added airports: IST, SAW, AYT, ADB, DLM, BJV. Hubs include IST/SAW/AYT/ADB.
 
 ## Live data troubleshooting on Railway
 Open `/health` and `/api/debug` on your deployed URL. If `hasAmadeusKeys` is false, Railway variables are not attached to the service.
+
+## Amadeus probe endpoint
+After deploying, open:
+- `/api/amadeus_probe` (defaults LHR->CDG, ~2 weeks ahead)
+Override with:
+- `/api/amadeus_probe?o=NCL&d=IST&date=2026-02-13`
+
+Returns token + offers HTTP status and a small summary (no secrets).
+
+## Strict live mode (optional)
+Set `AMADEUS_STRICT=1` to disable mock fallback in LIVE mode.

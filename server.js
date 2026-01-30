@@ -224,6 +224,9 @@ async function getFlightOffers({ origin, destination, date, max, budget }) {
     const res = await fetchAmadeusFlightOffers({ origin, destination, date, max, adults: 1, budget });
     offers = res.offers;
   }
+  if ((!offers || !offers.length) && dataMode() === "LIVE" && String(process.env.AMADEUS_STRICT||"").trim()==="1") {
+    offers = [];
+  }
   if (!offers || !offers.length) {
     offers = mockFlightOffers({ origin, destination, date, max });
   }
@@ -458,6 +461,70 @@ app.get("/api/debug", (req,res) => {
     sampleRecordings: files
   });
 });
+
+
+app.get("/api/amadeus_probe", async (req,res) => {
+  const out = {
+    mode: dataMode(),
+    hasAmadeusKeys: Boolean(process.env.AMADEUS_KEY && process.env.AMADEUS_SECRET),
+    token: { ok: false },
+    offers: { ok: false }
+  };
+
+  try {
+    const key = process.env.AMADEUS_KEY;
+    const secret = process.env.AMADEUS_SECRET;
+    if (!key || !secret) return res.status(400).json({ ...out, error: "Missing AMADEUS_KEY/AMADEUS_SECRET" });
+
+    // Force token refresh for probe
+    AMADEUS_TOKEN = null;
+    AMADEUS_TOKEN_EXP = 0;
+
+    const body = new URLSearchParams({
+      grant_type: "client_credentials",
+      client_id: key,
+      client_secret: secret
+    });
+
+    const tokenUrl = "https://test.api.amadeus.com/v1/security/oauth2/token";
+    const tRes = await fetch(tokenUrl, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body });
+    out.token.status = tRes.status;
+
+    const tTxt = await tRes.text();
+    const tJson = safeJsonParse(tTxt);
+    out.token.body = tJson ? { has_access_token: Boolean(tJson.access_token), expires_in: tJson.expires_in } : { raw: tTxt.slice(0, 200) };
+    if (!tRes.ok || !tJson?.access_token) return res.status(502).json(out);
+
+    const token = tJson.access_token;
+    out.token.ok = true;
+
+    const origin = String(req.query.o || "LHR").toUpperCase();
+    const dest = String(req.query.d || "CDG").toUpperCase();
+    const date = String(req.query.date || new Date(Date.now()+14*86400000).toISOString().slice(0,10));
+
+    const url = new URL("https://test.api.amadeus.com/v2/shopping/flight-offers");
+    url.searchParams.set("originLocationCode", origin);
+    url.searchParams.set("destinationLocationCode", dest);
+    url.searchParams.set("departureDate", date);
+    url.searchParams.set("adults", "1");
+    url.searchParams.set("max", "3");
+    url.searchParams.set("currencyCode", "GBP");
+
+    const oRes = await fetch(url.toString(), { headers: { Authorization: `Bearer ${token}` } });
+    out.offers.status = oRes.status;
+
+    const oTxt = await oRes.text();
+    const oJson = safeJsonParse(oTxt);
+    out.offers.body = oJson ? { data_len: Array.isArray(oJson.data) ? oJson.data.length : null, errors: oJson.errors || null } : { raw: oTxt.slice(0, 200) };
+    if (!oRes.ok) return res.status(502).json(out);
+
+    out.offers.ok = true;
+    return res.json(out);
+  } catch (e) {
+    return res.status(500).json({ ...out, error: String(e) });
+  }
+});
+
 
 app.get("/api/places", (req,res) => {
   const q = String(req.query.q || "").trim().toLowerCase();
