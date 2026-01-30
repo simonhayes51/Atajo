@@ -14,470 +14,425 @@ app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan("dev"));
 
+/* ================= CONFIG ================= */
+
+const TP_TOKEN = process.env.TRAVELPAYOUTS_TOKEN || "";
+const TP_MARKER = process.env.TRAVELPAYOUTS_MARKER || "493900";
+
+// Rate/cost control
+const LEG_CACHE_TTL_MS = Number(process.env.LEG_CACHE_TTL_MS || 60 * 60 * 1000); // 1h
+
+// Hack sanity defaults (stops “NCL -> BRS (13h) -> IST”)
+const DEFAULT_MIN_BUFFER_MIN = Number(process.env.MIN_BUFFER_MIN || 180); // 3h
+const DEFAULT_MAX_LAYOVER_MIN = Number(process.env.MAX_LAYOVER_MIN || 360); // 6h hard cap
+const DEFAULT_MAX_TOTAL_HOURS = Number(process.env.MAX_TOTAL_HOURS || 48); // UI can override downwards
+
+function hasTP() {
+  return TP_TOKEN && TP_TOKEN.length > 10;
+}
+
+/* ================= LOAD DATA ================= */
+
 const DATA_DIR = path.join(__dirname, "data");
-const REC_DIR = path.join(__dirname, "recordings");
-if (!fs.existsSync(REC_DIR)) fs.mkdirSync(REC_DIR, { recursive: true });
 
-const AIRPORTS = JSON.parse(fs.readFileSync(path.join(DATA_DIR, "airports.json"), "utf8"));
-const HUBS = JSON.parse(fs.readFileSync(path.join(DATA_DIR, "hubs.json"), "utf8"));
-const RAIL_EDGES = JSON.parse(fs.readFileSync(path.join(DATA_DIR, "rail_edges.json"), "utf8"));
-
-function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
-function uniq(arr) { return [...new Set(arr)]; }
-function byIata(iata){ return AIRPORTS.find(a => a.iata === iata); }
-function countryOf(iata){ return byIata(iata)?.country || "??"; }
-
-function hashToFloat(seed) {
-  let h = 2166136261;
-  for (let i = 0; i < seed.length; i++) {
-    h ^= seed.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return ((h >>> 0) % 1000000) / 1000000;
+function readJSON(rel) {
+  return JSON.parse(fs.readFileSync(path.join(DATA_DIR, rel), "utf8"));
 }
 
-function parseISODurationToMinutes(iso) {
-  const m = String(iso || "").match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
-  if (!m) return 0;
-  const h = Number(m[1] || 0);
-  const min = Number(m[2] || 0);
-  return h * 60 + min;
+const AIRPORTS = readJSON("airports.json");
+const HUBS = readJSON("hubs.json");
+const RAIL_EDGES = readJSON("rail_edges.json");
+
+const AIRPORT_BY_IATA = new Map(AIRPORTS.map(a => [a.iata, a]));
+
+function airportCountry(iata) {
+  return AIRPORT_BY_IATA.get(iata)?.country || "??";
 }
 
-function safeJsonParse(txt) {
-  try { return JSON.parse(txt); } catch { return null; }
+function uniq(arr) {
+  return [...new Set(arr)];
 }
 
-function dataMode() {
-  const mode = (process.env.DATA_MODE || "").trim().toUpperCase();
-  if (mode === "MOCK" || mode === "REPLAY" || mode === "LIVE") return mode;
-  if (process.env.TRAVELPAYOUTS_TOKEN) return "LIVE";
-  return "MOCK";
-}
+/* ================= SIMPLE TTL CACHE ================= */
 
-const LEG_CACHE_TTL_MS = clamp(Number(process.env.LEG_CACHE_TTL_MS || 3600000), 60_000, 24*3600_000);
-const API_BUDGET_DEFAULT = clamp(Number(process.env.API_BUDGET || 25), 0, 500);
-const AMADEUS_COOLDOWN_MS = clamp(Number(process.env.AMADEUS_COOLDOWN_MS || 180000), 30_000, 30*60_000);
-
-// In-memory TTL cache for leg offers
 const LEG_CACHE = new Map(); // key -> { exp, value }
+
 function cacheGet(key) {
   const hit = LEG_CACHE.get(key);
   if (!hit) return null;
-  if (Date.now() > hit.exp) { LEG_CACHE.delete(key); return null; }
+  if (Date.now() > hit.exp) {
+    LEG_CACHE.delete(key);
+    return null;
+  }
   return hit.value;
 }
+
 function cacheSet(key, value, ttlMs) {
   LEG_CACHE.set(key, { exp: Date.now() + ttlMs, value });
 }
 
-// Recording helpers
-function recFileName(provider, origin, destination, date, adults, max) {
-  const safe = (v) => String(v).replace(/[^A-Za-z0-9_.-]/g, "_");
-  return `${safe(provider)}__${safe(origin)}__${safe(destination)}__${safe(date)}__adults${safe(adults)}__max${safe(max)}.json`;
-}
-function readRecording(fileName) {
-  const p = path.join(REC_DIR, fileName);
-  if (!fs.existsSync(p)) return null;
-  return safeJsonParse(fs.readFileSync(p, "utf8"));
-}
-function writeRecording(fileName, json) {
-  const p = path.join(REC_DIR, fileName);
-  fs.writeFileSync(p, JSON.stringify(json, null, 2), "utf8");
-}
+/* ================= HEALTH ================= */
 
-// Amadeus TEST adapter with token caching + 429 cooldown
-let AMADEUS_TOKEN = null;
-let AMADEUS_TOKEN_EXP = 0;
-let AMADEUS_COOLDOWN_UNTIL = 0;
+app.get("/health", (req, res) => {
+  res.json({
+    ok: true,
+    provider: "travelpayouts",
+    mode: hasTP() ? "LIVE" : "MOCK",
+    hasToken: hasTP(),
+    marker: TP_MARKER,
+    cacheSize: LEG_CACHE.size
+  });
+});
 
-async function amadeusToken() {
-  const key = process.env.AMADEUS_KEY;
-  const secret = process.env.AMADEUS_SECRET;
-  if (!key || !secret) return null;
+/* ================= AUTOCOMPLETE ================= */
 
-  const now = Date.now();
-  if (AMADEUS_TOKEN && now < AMADEUS_TOKEN_EXP) return AMADEUS_TOKEN;
+app.get("/api/places", (req, res) => {
+  const q = String(req.query.q || "").trim().toLowerCase();
+  if (q.length < 2) return res.json([]);
 
-  const body = new URLSearchParams({
-    grant_type: "client_credentials",
-    client_id: key,
-    client_secret: secret
+  const hits = AIRPORTS.filter(a => {
+    const hay = `${a.iata} ${a.city} ${a.name} ${a.country}`.toLowerCase();
+    return hay.includes(q);
   });
 
-  const url = "https://test.api.amadeus.com/v1/security/oauth2/token";
-  const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body });
-  if (!res.ok) {
-    const txt = await res.text();
-    console.error("Amadeus token error:", res.status, txt);
-    return null;
-  }
-  const json = await res.json();
-  AMADEUS_TOKEN = json.access_token;
-  AMADEUS_TOKEN_EXP = now + (Number(json.expires_in || 1800) - 60) * 1000;
-  return AMADEUS_TOKEN;
+  // Prefer starts-with
+  hits.sort((a, b) => {
+    const aScore =
+      (a.iata.toLowerCase().startsWith(q) ? 3 : 0) +
+      (a.city.toLowerCase().startsWith(q) ? 2 : 0) +
+      (a.name.toLowerCase().startsWith(q) ? 1 : 0);
+    const bScore =
+      (b.iata.toLowerCase().startsWith(q) ? 3 : 0) +
+      (b.city.toLowerCase().startsWith(q) ? 2 : 0) +
+      (b.name.toLowerCase().startsWith(q) ? 1 : 0);
+    return bScore - aScore;
+  });
+
+  res.json(hits.slice(0, 10).map(a => ({
+    iata: a.iata,
+    city: a.city,
+    name: a.name,
+    country: a.country
+  })));
+});
+
+/* ================= RAIL LOOKUP (STATIC) ================= */
+
+function bestRailLeg(origin, destination) {
+  const edges = RAIL_EDGES.filter(e => e.origin === origin && e.destination === destination);
+  if (!edges.length) return null;
+  const best = edges.slice().sort((a, b) => a.price_gbp - b.price_gbp)[0];
+  return {
+    type: "TRAIN",
+    origin,
+    destination,
+    price_gbp: best.price_gbp,
+    duration_min: best.duration_min,
+    depart_ts: null,
+    arrive_ts: null,
+    provider: "RAIL_EST",
+    note: best.note || "Typical rail link"
+  };
 }
 
-function normalizeTravelpayoutsOffers(origin, destination, json, requestedDate) {
+/* ================= TRAVELPAYOUTS LEG FETCH ================= */
+
+function normalizeTP(origin, destination, json, preferredDate) {
   const rows = Array.isArray(json?.data) ? json.data : [];
-  const filtered = requestedDate
-    ? rows.filter(r => (r.depart_date === requestedDate) || (String(r.departure_at || "").startsWith(requestedDate)))
+
+  // Keep rows on same date if possible
+  const filtered = preferredDate
+    ? rows.filter(r =>
+        (r.depart_date === preferredDate) ||
+        (String(r.departure_at || "").startsWith(preferredDate))
+      )
     : rows;
 
-  const picks = (filtered.length ? filtered : rows).map(r => {
+  const use = filtered.length ? filtered : rows;
+
+  const mapped = use.map(r => {
     const dep = r.departure_at || (r.depart_date ? `${r.depart_date}T12:00:00Z` : null);
     const durMin = Number(r.duration || r.duration_to || 0) || 0;
+
     let arr = null;
     if (dep && durMin > 0) {
       const t = Date.parse(dep);
       if (!Number.isNaN(t)) arr = new Date(t + durMin * 60000).toISOString();
     }
+
     return {
       type: "FLIGHT",
-      origin, destination,
+      origin,
+      destination,
+      price_gbp: Number(r.price || 999999),
+      duration_min: durMin,
       depart_ts: dep,
       arrive_ts: arr,
-      duration_min: durMin,
-      price_gbp: Number(r.price || 9999),
-      provider: "TRAVELPAYOUTS",
       airline: r.airline || "XX",
-      deep_link: r.link ? ("https://www.aviasales.com" + r.link + "?marker=" + (process.env.TRAVELPAYOUTS_MARKER || "493900")) : null,
-      transfers: Number(r.transfers || 0)
+      transfers: Number(r.transfers || 0),
+      provider: "TRAVELPAYOUTS",
+      deep_link: r.link
+        ? ("https://www.aviasales.com" + r.link + (r.link.includes("?") ? "&" : "?") + "marker=" + TP_MARKER)
+        : null
     };
   });
 
-  picks.sort((a,b)=>a.price_gbp-b.price_gbp);
-  return picks;
+  mapped.sort((a, b) => a.price_gbp - b.price_gbp);
+  return mapped;
 }
 
-async function fetchTravelpayoutsOffers({ origin, destination, date, max = 3, budget }) {
-  if (!budget || budget.remaining <= 0) return { offers: null, used: 0, budget_exhausted: true };
+async function fetchTPLeg(origin, destination, date, limit = 3) {
+  const key = `tp|${origin}-${destination}-${date}|${limit}`;
+  const cached = cacheGet(key);
+  if (cached) return cached;
 
-  const token = process.env.TRAVELPAYOUTS_TOKEN;
-  if (!token) return { offers: null, used: 0, no_token: true };
-
-  // Budget accounting: 1 call per leg
-  budget.remaining -= 1;
+  if (!hasTP()) {
+    // MOCK fallback (keeps UI alive if no env vars)
+    const mock = [{
+      type: "FLIGHT",
+      origin,
+      destination,
+      price_gbp: 12 + Math.floor(Math.random() * 120),
+      duration_min: 60 + Math.floor(Math.random() * 220),
+      depart_ts: `${date}T10:00:00Z`,
+      arrive_ts: `${date}T12:00:00Z`,
+      airline: "MOCK",
+      transfers: 0,
+      provider: "MOCK",
+      deep_link: null
+    }];
+    cacheSet(key, mock, LEG_CACHE_TTL_MS);
+    return mock;
+  }
 
   const url = new URL("https://api.travelpayouts.com/aviasales/v3/prices_for_dates");
   url.searchParams.set("origin", origin);
   url.searchParams.set("destination", destination);
   url.searchParams.set("currency", "gbp");
   url.searchParams.set("market", "gb");
-  url.searchParams.set("limit", String(Math.max(10, max * 10)));
-  url.searchParams.set("token", token);
-
-  // Narrow to requested date when provided (YYYY-MM-DD)
+  url.searchParams.set("limit", "30");
+  url.searchParams.set("token", TP_TOKEN);
   if (date) url.searchParams.set("departure_at", date);
 
-  const res = await fetch(url.toString());
-  const txt = await res.text();
-  const json = safeJsonParse(txt) || {};
+  const r = await fetch(url.toString());
+  const txt = await r.text();
+  const j = (() => { try { return JSON.parse(txt); } catch { return {}; } })();
 
-  if (!res.ok) {
-    console.error("Travelpayouts error:", res.status, txt.slice(0, 400));
-    return { offers: null, used: 1, error_status: res.status };
+  if (!r.ok) {
+    console.error("TP leg error", r.status, txt.slice(0, 400));
+    cacheSet(key, [], 5 * 60 * 1000); // brief negative cache
+    return [];
   }
 
-  return { offers: normalizeTravelpayoutsOffers(origin, destination, json, date).slice(0, max), used: 1, live: true };
-}
-
-async function fetchAmadeusFlightOffers({ origin, destination, date, adults = 1, max = 3, budget }) {
-  if (Date.now() < AMADEUS_COOLDOWN_UNTIL) return { offers: null, used: 0, cooldown: true };
-  if (!budget || budget.remaining <= 0) return { offers: null, used: 0, budget_exhausted: true };
-
-  const token = await amadeusToken();
-  if (!token) return { offers: null, used: 0, no_token: true };
-
-  const mode = dataMode();
-
-  const fileName = recFileName("amadeus_test", origin, destination, date, adults, max);
-  if (mode === "REPLAY") {
-    const rec = readRecording(fileName);
-    if (!rec) return { offers: null, used: 0, missing_recording: true };
-    return { offers: normalizeAmadeusOffers(origin, destination, rec), used: 0, replay: true };
-  }
-
-  if (mode === "LIVE") {
-    const existing = readRecording(fileName);
-    if (existing) return { offers: normalizeAmadeusOffers(origin, destination, existing), used: 0, replay: true };
-
-    budget.remaining -= 1;
-
-    const url = new URL("https://test.api.amadeus.com/v2/shopping/flight-offers");
-    url.searchParams.set("originLocationCode", origin);
-    url.searchParams.set("destinationLocationCode", destination);
-    url.searchParams.set("departureDate", date);
-    url.searchParams.set("adults", String(adults));
-    url.searchParams.set("max", String(max));
-    url.searchParams.set("currencyCode", "GBP");
-
-    const res = await fetch(url.toString(), { headers: { Authorization: `Bearer ${token}` } });
-    if (!res.ok) {
-      const txt = await res.text();
-      console.error("Amadeus offers error:", res.status, txt);
-      if (res.status === 429) AMADEUS_COOLDOWN_UNTIL = Date.now() + AMADEUS_COOLDOWN_MS;
-      return { offers: null, used: 1, error_status: res.status };
-    }
-
-    const json = await res.json();
-    writeRecording(fileName, json);
-    return { offers: normalizeAmadeusOffers(origin, destination, json), used: 1, live: true };
-  }
-
-  return { offers: null, used: 0, mock: true };
-}
-
-function mockFlightOffers({ origin, destination, date, max = 3 }) {
-  const baseSeed = `${origin}-${destination}-${date}`;
-  const dist = Math.abs(hashToFloat(baseSeed) - 0.5);
-  const basePrice = Math.round(12 + dist * 220);
-  const baseDur = Math.round(55 + dist * 240);
-
-  const offers = [];
-  for (let i=0;i<max;i++){
-    const bump = 1 + i * 0.08;
-    offers.push({
-      type: "FLIGHT",
-      origin, destination,
-      depart_ts: `${date}T10:00:00Z`,
-      arrive_ts: `${date}T${String(10 + Math.floor((baseDur*bump)/60)).padStart(2,"0")}:${String(Math.floor((baseDur*bump)%60)).padStart(2,"0")}:00Z`,
-      duration_min: Math.round(baseDur*bump),
-      price_gbp: Math.round(basePrice*bump),
-      provider: "MOCK",
-      airline: "MOCK"
-    });
-  }
-  offers.sort((a,b)=>a.price_gbp-b.price_gbp);
-  return offers;
-}
-
-async function getFlightOffers({ origin, destination, date, max, budget }) {
-  const key = `${dataMode()}|${origin}-${destination}-${date}-max${max}`;
-  const cached = cacheGet(key);
-  if (cached) return cached;
-
-  const mode = dataMode();
-  let offers = null;
-  if (mode === "LIVE" || mode === "REPLAY") {
-    const res = await fetchTravelpayoutsOffers({ origin, destination, date, max, budget });
-    offers = res.offers;
-  }
-  if ((!offers || !offers.length) && dataMode() === "LIVE" && String(process.env.AMADEUS_STRICT||"").trim()==="1") {
-    offers = [];
-  }
-  if (!offers || !offers.length) {
-    offers = mockFlightOffers({ origin, destination, date, max });
-  }
-
+  const offers = normalizeTP(origin, destination, j, date).slice(0, limit);
   cacheSet(key, offers, LEG_CACHE_TTL_MS);
   return offers;
 }
 
-// Rail edges expanded to airport-airport edges using metro grouping
-function buildRailAirportEdges() {
-  const byMetro = new Map();
-  for (const a of AIRPORTS) {
-    const m = a.metro || a.city;
-    if (!byMetro.has(m)) byMetro.set(m, []);
-    byMetro.get(m).push(a.iata);
-  }
-  const edges = [];
-  for (const e of RAIL_EDGES) {
-    const fromAirports = byMetro.get(e.from_city) || [];
-    const toAirports = byMetro.get(e.to_city) || [];
-    for (const fa of fromAirports) {
-      for (const ta of toAirports) {
-        edges.push({ origin: fa, destination: ta, price_gbp: e.price_gbp, duration_min: e.duration_min, from_city: e.from_city, to_city: e.to_city });
-      }
-    }
-  }
-  return edges;
-}
-const RAIL_AIRPORT_EDGES = buildRailAirportEdges();
+/* ================= HACK SCORING ================= */
 
-app.get("/api/places", (req,res) => {
-  const q = String(req.query.q || "").trim().toLowerCase();
-  if (q.length < 2) return res.json([]);
-
-  const matches = AIRPORTS.filter(a =>
-    a.iata.toLowerCase().includes(q) ||
-    a.city.toLowerCase().includes(q) ||
-    a.name.toLowerCase().includes(q)
-  );
-
-  // Prefer starts-with matches
-  matches.sort((a,b)=>{
-    const as = a.iata.toLowerCase().startsWith(q) || a.city.toLowerCase().startsWith(q) || a.name.toLowerCase().startsWith(q);
-    const bs = b.iata.toLowerCase().startsWith(q) || b.city.toLowerCase().startsWith(q) || b.name.toLowerCase().startsWith(q);
-    return (bs?1:0)-(as?1:0);
-  });
-
-  return res.json(matches.slice(0, 8).map(a => ({ iata: a.iata, city: a.city, name: a.name, country: a.country })));
-});
-
-function pickDestinations(to) {
-  const t = String(to || "").trim().toUpperCase();
-  if (t.length === 3) return [t];
-  // allow major city string to map to all airports in that city
-  const city = String(to || "").trim().toLowerCase();
-  const matches = AIRPORTS.filter(a => a.city.toLowerCase() === city).map(a=>a.iata);
-  return matches.slice(0, 6);
+function minutesBetween(aIso, bIso) {
+  if (!aIso || !bIso) return null;
+  const a = Date.parse(aIso);
+  const b = Date.parse(bIso);
+  if (Number.isNaN(a) || Number.isNaN(b)) return null;
+  return Math.round((b - a) / 60000);
 }
 
-function pickOrigins(from, originScope) {
-  if (from && String(from).length === 3) return [String(from).toUpperCase()];
-
-  const uk = ["NCL","EDI","GLA","MAN","LHR","LGW","STN","LTN","BHX","BRS","DUB"];
-  const europe = uniq([...uk, ...HUBS]);
-  const global = uniq([...europe, "JFK","EWR","LAX","SFO","ORD","MIA","YYZ","MEX","CUN","SJO","PTY","BOG","LIM","GRU","EZE","SCL","HND","NRT","ICN","HKG","SIN","BKK","KUL","DXB","DOH","AUH","SYD","MEL","AKL","DEL","BOM"]);
-
-  if (originScope === "UK") return uk;
-  if (originScope === "EUROPE" || originScope === "UK_EU") return europe;
-  if (originScope === "GLOBAL") return global;
-
-  // default
-  return europe;
-}
-
-function estimateLayover(prev, next, minBufferMin) {
-  if (!prev.arrive_ts || !next.depart_ts) return { mins: null, overnight: false, tight: false };
-  const a = new Date(prev.arrive_ts);
-  const d = new Date(next.depart_ts);
-  const mins = Math.round((d - a) / 60000);
-  const overnight = a.getUTCDate() !== d.getUTCDate();
+function computeLayover(prevLeg, nextLeg, minBufferMin) {
+  const mins = minutesBetween(prevLeg.arrive_ts, nextLeg.depart_ts);
+  if (mins == null) return { mins: null, tight: false, overnight: false };
   const tight = mins >= 0 && mins < minBufferMin;
-  return { mins, overnight, tight };
+  const overnight =
+    prevLeg.arrive_ts && nextLeg.depart_ts
+      ? (new Date(prevLeg.arrive_ts).toDateString() !== new Date(nextLeg.depart_ts).toDateString())
+      : false;
+  return { mins, tight, overnight };
 }
 
-function scoreItinerary(it, prefs) {
-  const stops = it.legs.length - 1;
-  const countries = uniq(it.legs.flatMap(l => [countryOf(l.origin), countryOf(l.destination)])).filter(c=>c!=="??");
+function scoreRoute(route, adventureLevel) {
+  const stops = route.legs.length - 1;
+  const countries = uniq(route.legs.flatMap(l => [airportCountry(l.origin), airportCountry(l.destination)])).filter(c => c !== "??");
   const extraCountries = Math.max(0, countries.length - 1);
-  const overnight = it.legs.some(l => l.overnight);
-  const tightTransfers = it.legs.some(l => l.tight);
-  const pain = stops*15 + (overnight?25:0) + (tightTransfers?40:0);
-  const bonus = extraCountries * 30 * (prefs.adventureLevel || 1);
-  const score = it.total_cost + pain - bonus;
-  return { score, stops, countriesCount: countries.length, extraCountries, pain };
-}
 
-function maybeTrainLeg(origin, destination, includeTrains) {
-  if (!includeTrains) return null;
-  const candidates = RAIL_AIRPORT_EDGES.filter(e => e.origin === origin && e.destination === destination);
-  if (!candidates.length) return null;
-  const best = candidates.slice().sort((a,b)=>a.price_gbp-b.price_gbp)[0];
+  const pain =
+    stops * 15 +
+    (route.legs.some(l => l._overnight) ? 25 : 0) +
+    (route.legs.some(l => l._tight) ? 40 : 0);
+
+  const bonus = extraCountries * 30 * adventureLevel;
+
+  const score = route.total_cost + pain - bonus;
+
   return {
-    type: "TRAIN",
-    origin, destination,
-    depart_ts: null, arrive_ts: null,
-    duration_min: best.duration_min,
-    price_gbp: best.price_gbp,
-    provider: "RAIL_EST",
-    note: `Frequent rail link: ${best.from_city} → ${best.to_city}`
+    score,
+    stops,
+    countriesCount: countries.length,
+    extraCountries,
+    pain
   };
 }
 
-async function buildItineraries({ from, to, date, flexDays, maxStops, includeTrains, originScope, adventureLevel, minBufferMin, maxTotalHours }) {
-  const origins = pickOrigins(from, originScope);
-  const dests = pickDestinations(to);
-  if (!dests.length) return { error: "Destination not recognized. Try an airport code like DUS or a major city name." };
+/* ================= SEARCH ENGINE ================= */
 
-  const budget = { remaining: API_BUDGET_DEFAULT };
-
-  // Destination-first hub pruning (low calls)
-  const baseHubs = uniq(["DUB","AMS","BRU","CRL","CDG","ORY","BVA","BCN","MAD","LIS","OPO","MXP","BGY","FRA","HHN","CGN","BER","PRG","BUD","VIE","CPH","IST","SAW","AYT","ADB"]);
-  let hubs = baseHubs.filter(h => !dests.includes(h) && h !== from);
-
-  const baseDate = new Date(date);
-  const fd = clamp(Number(flexDays||0), 0, 7);
-  const window = [];
-  for (let i=-fd; i<=fd; i++){
-    const d = new Date(baseDate);
-    d.setUTCDate(d.getUTCDate()+i);
-    window.push(d.toISOString().slice(0,10));
+function originList(originScope, fromIataOrNull) {
+  if (fromIataOrNull && String(fromIataOrNull).trim().length === 3) {
+    return [String(fromIataOrNull).trim().toUpperCase()];
   }
 
-  const hubScores = [];
-  for (const h of hubs) {
-    let best = Infinity;
-    for (const dt of window) {
-      const d = dests[0];
-      const offs = await getFlightOffers({ origin: h, destination: d, date: dt, max: 1, budget });
-      if (offs[0]) best = Math.min(best, offs[0].price_gbp);
-    }
-    if (best < Infinity) hubScores.push({ h, best });
+  const UK = ["NCL","EDI","GLA","MAN","LHR","LGW","STN","LTN","BHX","BRS","LBA","DUB"];
+  const EUROPE = uniq([...UK, ...HUBS]);
+  const GLOBAL = uniq([
+    ...EUROPE,
+    "JFK","EWR","LAX","SFO","ORD","MIA","YYZ","YUL","MEX","CUN","SJO","PTY","BOG","LIM","GRU","EZE","SCL",
+    "HND","NRT","ICN","HKG","SIN","BKK","KUL","DXB","DOH","AUH","SYD","MEL","AKL","DEL","BOM"
+  ]);
+
+  if (originScope === "UK") return UK;
+  if (originScope === "UK_EU") return EUROPE;
+  if (originScope === "GLOBAL") return GLOBAL;
+  return EUROPE;
+}
+
+function dateWindow(date, flexDays) {
+  const base = new Date(date + "T00:00:00Z");
+  const n = Math.max(0, Math.min(7, Number(flexDays || 0)));
+  const out = [];
+  for (let i = -n; i <= n; i++) {
+    const d = new Date(base);
+    d.setUTCDate(d.getUTCDate() + i);
+    out.push(d.toISOString().slice(0, 10));
   }
-  hubScores.sort((a,b)=>a.best-b.best);
-  hubs = hubScores.slice(0, clamp(6 + maxStops*2, 6, 10)).map(x=>x.h);
+  return out;
+}
 
-  const itineraries = [];
+async function buildRoutes(params) {
+  const {
+    from,
+    to,
+    date,
+    flexDays,
+    originScope,
+    maxStops,
+    adventureLevel,
+    includeTrains,
+    minBufferMin,
+    maxTotalHours,
+    maxLayoverMin
+  } = params;
 
-  async function offers(o, d, dt, max=1){
-    return await getFlightOffers({ origin:o, destination:d, date:dt, max, budget });
+  const dest = String(to || "").trim().toUpperCase();
+  if (dest.length !== 3) {
+    return { error: "Destination must be an IATA code (e.g. DUS, IST, BUD)." };
   }
 
-  for (const dt of window) {
-    for (const o of origins) {
+  const origins = originList(originScope, from);
+  const dates = dateWindow(date, flexDays);
+
+  // Keep hub list sensible (and not “Dublin always”)
+  const hubs = HUBS.slice(0);
+
+  const routes = [];
+
+  async function bestLeg(o, d, dt) {
+    const offers = await fetchTPLeg(o, d, dt, 2);
+    return offers[0] || null;
+  }
+
+  // DIRECT + 1 stop + 2 stops
+  for (const dt of dates) {
+    for (const origin of origins) {
       // direct
-      const d = dests[0];
-      const directOffers = await offers(o, d, dt, 2);
-      for (const off of directOffers.slice(0,2)) {
-        itineraries.push({ legs:[off], total_cost: off.price_gbp, total_duration_min: off.duration_min, date: dt });
+      const d0 = await bestLeg(origin, dest, dt);
+      if (d0) {
+        routes.push({
+          legs: [d0],
+          total_cost: d0.price_gbp,
+          total_duration_min: d0.duration_min,
+          date: dt
+        });
       }
 
       if (maxStops >= 1) {
         for (const h of hubs) {
-          const oh = (await offers(o,h,dt,1))[0];
-          if (!oh) continue;
+          if (h === origin || h === dest) continue;
 
-          const trainAlt = maybeTrainLeg(h, d, includeTrains);
-          const hd = (await offers(h,d,dt,1))[0];
-          for (const leg2 of [hd, trainAlt].filter(Boolean)) {
-            const legs = [{...oh}, {...leg2}];
-            const lay = estimateLayover(legs[0], legs[1], minBufferMin);
-            if (lay.mins !== null && lay.mins > 360) continue;
-            legs[1].overnight = lay.overnight;
-            legs[1].tight = lay.tight;
+          const l1 = await bestLeg(origin, h, dt);
+          if (!l1) continue;
 
-            const totalCost = legs.reduce((s,l)=>s+l.price_gbp,0);
-            const totalDur = legs.reduce((s,l)=>s+l.duration_min,0) + (lay.mins && lay.mins>0 ? lay.mins : 0);
-            itineraries.push({ legs, total_cost: totalCost, total_duration_min: totalDur, date: dt });
+          const rail2 = includeTrains ? bestRailLeg(h, dest) : null;
+          const l2f = await bestLeg(h, dest, dt);
+          const l2candidates = [l2f, rail2].filter(Boolean);
+          for (const l2 of l2candidates) {
+            const lay = computeLayover(l1, l2, minBufferMin);
+            if (lay.mins != null && lay.mins > maxLayoverMin) continue; // kill 13h layovers
+            if (lay.mins != null && lay.mins < 0) continue; // impossible time ordering
+
+            l2._tight = lay.tight;
+            l2._overnight = lay.overnight;
+
+            const totalCost = l1.price_gbp + l2.price_gbp;
+            const totalDur =
+              l1.duration_min + l2.duration_min + (lay.mins && lay.mins > 0 ? lay.mins : 0);
+
+            routes.push({
+              legs: [l1, l2],
+              total_cost: totalCost,
+              total_duration_min: totalDur,
+              date: dt
+            });
           }
         }
       }
 
-      if (maxStops >= 2 && budget.remaining > 0) {
-        const h1List = [];
+      if (maxStops >= 2) {
+        // pick cheapest few first hubs for speed
+        const firstHubCandidates = [];
         for (const h1 of hubs) {
-          const leg = (await offers(o,h1,dt,1))[0];
-          if (leg) h1List.push({ h1, leg, price: leg.price_gbp });
+          if (h1 === origin || h1 === dest) continue;
+          const l1 = await bestLeg(origin, h1, dt);
+          if (l1) firstHubCandidates.push({ h1, l1 });
         }
-        h1List.sort((a,b)=>a.price-b.price);
-        const topH1 = h1List.slice(0, 3);
-
-        for (const {h1, leg:leg1} of topH1) {
+        firstHubCandidates.sort((a, b) => a.l1.price_gbp - b.l1.price_gbp);
+        for (const { h1, l1 } of firstHubCandidates.slice(0, 4)) {
           for (const h2 of hubs) {
-            if (h2===h1) continue;
-            const leg2 = (await offers(h1,h2,dt,1))[0];
-            if (!leg2) continue;
+            if (h2 === origin || h2 === dest || h2 === h1) continue;
 
-            const trainAlt = maybeTrainLeg(h2, d, includeTrains);
-            const leg3 = (await offers(h2,d,dt,1))[0];
+            const l2 = await bestLeg(h1, h2, dt);
+            if (!l2) continue;
 
-            for (const finalLeg of [leg3, trainAlt].filter(Boolean)) {
-              const legs = [{...leg1}, {...leg2}, {...finalLeg}];
-              const lay1 = estimateLayover(legs[0], legs[1], minBufferMin);
-              if (lay1.mins !== null && lay1.mins > 360) continue;
-              legs[1].overnight = lay1.overnight; legs[1].tight = lay1.tight;
-              const lay2 = estimateLayover(legs[1], legs[2], minBufferMin);
-              if (lay2.mins !== null && lay2.mins > 360) continue;
-              legs[2].overnight = lay2.overnight; legs[2].tight = lay2.tight;
+            const rail3 = includeTrains ? bestRailLeg(h2, dest) : null;
+            const l3f = await bestLeg(h2, dest, dt);
+            const l3candidates = [l3f, rail3].filter(Boolean);
 
-              const totalCost = legs.reduce((s,l)=>s+l.price_gbp,0);
-              const layMins = (lay1.mins && lay1.mins>0 ? lay1.mins : 0) + (lay2.mins && lay2.mins>0 ? lay2.mins : 0);
-              const totalDur = legs.reduce((s,l)=>s+l.duration_min,0) + layMins;
-              itineraries.push({ legs, total_cost: totalCost, total_duration_min: totalDur, date: dt });
+            for (const l3 of l3candidates) {
+              const lay1 = computeLayover(l1, l2, minBufferMin);
+              if (lay1.mins != null && lay1.mins > maxLayoverMin) continue;
+              if (lay1.mins != null && lay1.mins < 0) continue;
+
+              l2._tight = lay1.tight;
+              l2._overnight = lay1.overnight;
+
+              const lay2 = computeLayover(l2, l3, minBufferMin);
+              if (lay2.mins != null && lay2.mins > maxLayoverMin) continue;
+              if (lay2.mins != null && lay2.mins < 0) continue;
+
+              l3._tight = lay2.tight;
+              l3._overnight = lay2.overnight;
+
+              const totalCost = l1.price_gbp + l2.price_gbp + l3.price_gbp;
+              const totalLay =
+                (lay1.mins && lay1.mins > 0 ? lay1.mins : 0) +
+                (lay2.mins && lay2.mins > 0 ? lay2.mins : 0);
+
+              const totalDur = l1.duration_min + l2.duration_min + l3.duration_min + totalLay;
+
+              routes.push({
+                legs: [l1, l2, l3],
+                total_cost: totalCost,
+                total_duration_min: totalDur,
+                date: dt
+              });
             }
           }
         }
@@ -485,82 +440,73 @@ async function buildItineraries({ from, to, date, flexDays, maxStops, includeTra
     }
   }
 
-  const maxMins = (Number(maxTotalHours||24) * 60);
-  const filtered = itineraries.filter(it => it.total_duration_min <= maxMins);
+  // Filter total hours cap
+  const maxMins = Math.min(Number(maxTotalHours || DEFAULT_MAX_TOTAL_HOURS), DEFAULT_MAX_TOTAL_HOURS) * 60;
+  const trimmed = routes.filter(r => r.total_duration_min <= maxMins);
 
+  // Dedup by path
   const seen = new Set();
   const deduped = [];
-  for (const it of filtered) {
-    const sig = it.legs.map(l=>`${l.type}:${l.origin}-${l.destination}`).join("|") + `@${it.date}`;
+  for (const r of trimmed) {
+    const sig = r.legs.map(l => `${l.type}:${l.origin}-${l.destination}`).join("|") + "@" + r.date;
     if (seen.has(sig)) continue;
     seen.add(sig);
-    deduped.push(it);
+    deduped.push(r);
   }
 
-  const prefs = { adventureLevel: Number(adventureLevel||1) };
-  const scored = deduped.map(it => ({ ...it, ...scoreItinerary(it, prefs) }))
-    .sort((a,b)=>a.score-b.score);
+  // Score and sort
+  const adv = Math.max(0, Math.min(2, Number(adventureLevel || 1)));
+  const scored = deduped.map(r => ({ ...r, ...scoreRoute(r, adv) }))
+    .sort((a, b) => a.score - b.score);
 
-  const cheapest = scored[0];
-  const bestValue = scored.slice().sort((a,b)=>(a.total_cost + a.pain) - (b.total_cost + b.pain))[0];
-  const fastest = scored.slice().sort((a,b)=>a.total_duration_min-b.total_duration_min)[0];
-  const with2Countries = scored.find(r => r.countriesCount >= 3) || null;
-  const trainHack = scored.find(r => r.legs.some(l=>l.type==="TRAIN")) || null;
+  // “Original MVP” featured picks
+  const cheapest = scored[0] || null;
+  const bestValue = scored.slice().sort((a, b) => (a.total_cost + a.pain) - (b.total_cost + b.pain))[0] || null;
+  const fastest = scored.slice().sort((a, b) => a.total_duration_min - b.total_duration_min)[0] || null;
+  const extraCountries = scored.find(x => x.countriesCount >= 3) || null;
+  const withTrain = scored.find(x => x.legs.some(l => l.type === "TRAIN")) || null;
 
-  const pickList = uniq([cheapest, bestValue, fastest, with2Countries, trainHack].filter(Boolean)).slice(0, 6);
+  const picks = uniq([cheapest, bestValue, fastest, extraCountries, withTrain].filter(Boolean));
 
   return {
-    mode: dataMode(),
-    apiBudgetRemaining: budget.remaining,
-    query: { from, to, date, flexDays, maxStops, includeTrains, originScope, adventureLevel, minBufferMin, maxTotalHours },
-    itineraries: pickList,
-    more: scored.slice(0, 20)
+    mode: hasTP() ? "LIVE" : "MOCK",
+    provider: "travelpayouts",
+    picks,
+    top: scored.slice(0, 25)
   };
 }
 
-app.get("/health", (req,res)=>res.json({ ok:true, name:"atajo-mvp", mode: dataMode(), hasTravelpayoutsToken: Boolean(process.env.TRAVELPAYOUTS_TOKEN), marker: process.env.TRAVELPAYOUTS_MARKER || "493900", apiBudgetDefault: API_BUDGET_DEFAULT, legCacheTtlMs: LEG_CACHE_TTL_MS }));
+/* ================= API SEARCH ================= */
 
-app.get("/api/debug", (req,res) => {
-  const files = fs.existsSync(REC_DIR) ? fs.readdirSync(REC_DIR).slice(0,10) : [];
-  res.json({
-    mode: dataMode(),
-    hasToken: Boolean(process.env.TRAVELPAYOUTS_TOKEN),
-    marker: process.env.TRAVELPAYOUTS_MARKER || "493900",
-    apiBudgetDefault: API_BUDGET_DEFAULT,
-    legCacheTtlMs: LEG_CACHE_TTL_MS,
-    legCacheSize: LEG_CACHE.size,
-    recordingsCount: files.length,
-    sampleRecordings: files
-  });
-});
-
-app.post("/api/search", async (req,res) => {
+app.post("/api/search", async (req, res) => {
   try {
     const body = req.body || {};
-    const result = await buildItineraries({
+    const out = await buildRoutes({
       from: body.from || null,
       to: body.to,
-      date: body.date || new Date().toISOString().slice(0,10),
-      flexDays: body.flexDays ?? 0,
-      maxStops: clamp(Number(body.maxStops ?? 1), 0, 3),
+      date: body.date || new Date().toISOString().slice(0, 10),
+      flexDays: Number(body.flexDays || 0),
+      originScope: body.originScope || "UK_EU",        // UK / UK_EU / GLOBAL
+      maxStops: Math.max(0, Math.min(3, Number(body.maxStops || 1))),
+      adventureLevel: Math.max(0, Math.min(2, Number(body.adventureLevel || 1))),
       includeTrains: Boolean(body.includeTrains ?? true),
-      originScope: body.originScope || "UK",
-      adventureLevel: clamp(Number(body.adventureLevel ?? 1.0), 0, 2),
-      minBufferMin: clamp(Number(body.minBufferMin ?? 180), 60, 720),
-      maxTotalHours: clamp(Number(body.maxTotalHours ?? 24), 6, 120)
+      minBufferMin: Math.max(60, Math.min(720, Number(body.minBufferMin || DEFAULT_MIN_BUFFER_MIN))),
+      maxTotalHours: Math.max(6, Math.min(120, Number(body.maxTotalHours || DEFAULT_MAX_TOTAL_HOURS))),
+      maxLayoverMin: Math.max(60, Math.min(12 * 60, Number(body.maxLayoverMin || DEFAULT_MAX_LAYOVER_MIN)))
     });
-    res.json(result);
+
+    res.json(out);
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: "Search failed", detail: String(e) });
+    res.status(500).json({ error: "search failed", detail: String(e) });
   }
 });
+
+/* ================= STATIC ================= */
 
 app.use("/", express.static(path.join(__dirname, "public")));
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
-  console.log(
-    `Atajo MVP running on :${port} | mode=${dataMode()} | budget=${API_BUDGET_DEFAULT}`
-  );
+  console.log(`Atajo running on ${port} | mode=${hasTP() ? "LIVE" : "MOCK"} | marker=${TP_MARKER}`);
 });
