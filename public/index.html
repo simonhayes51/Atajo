@@ -273,10 +273,10 @@
 
     // IMPORTANT: backend returns { code, city, name } -> use x.code not x.iata
     function renderSuggestions(box, items, onPick){
-      if(!items.length){ hideBox(box); return; }
-      box.innerHTML = items.map(x => `
-        <div class="s-item" data-iata="${x.code}">
-          <div class="s-code">${x.code}</div>
+  if(!items.length){ hideBox(box); return; }
+  box.innerHTML = items.map(x => `
+    <div class="s-item" data-iata="${x.iata}">
+      <div class="s-code">${x.iata}</div>
           <div>
             <div class="s-city">${x.city}</div>
             <div class="s-name">${x.name}</div>
