@@ -1,170 +1,97 @@
+
 <!DOCTYPE html>
 <html>
 <head>
-<title>Atajo – Cheap Routes</title>
-
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<script>
-(function () {
-  var script = document.createElement("script");
-  script.async = 1;
-  script.src = 'https://tp-em.com/NDkzOTAw.js?t=493900';
-  document.head.appendChild(script);
-})();
-</script>
+<meta charset="utf-8"/>
+<title>Atajo</title>
 <style>
-body {
-  font-family: Arial;
-  margin: 30px;
-  background: #0f172a;
-  color: #e5e7eb;
-}
-
-input, button {
-  padding: 10px;
-  margin: 5px;
-  border-radius: 6px;
-  border: 0;
-}
-
-.card {
-  background: #020617;
-  padding: 15px;
-  margin: 10px 0;
-  border-radius: 8px;
-}
-
-a {
-  color: #38bdf8;
-}
+body{font-family:Arial;background:#0b132b;color:#fff;padding:30px}
+input,button{padding:10px;font-size:16px;margin:5px}
+.list{background:#fff;color:#000;position:absolute;z-index:5}
+.item{padding:5px;cursor:pointer}
+.item:hover{background:#eee}
 </style>
 </head>
-
 <body>
 
 <h1>Atajo ✈️</h1>
-
-<p id="mode">Loading…</p>
+<div id="mode"></div>
 
 <div>
-
-  <input
-    id="from"
-    list="fromList"
-    oninput="lookup('from','fromList')"
-    placeholder="From"
-  >
-  <datalist id="fromList"></datalist>
-
-  <input
-    id="to"
-    list="toList"
-    oninput="lookup('to','toList')"
-    placeholder="To"
-  >
-  <datalist id="toList"></datalist>
-
-  <button onclick="go()">Search</button>
-
+<input id="from" placeholder="From"/>
+<div id="fromList" class="list"></div>
 </div>
 
-<div id="out"></div>
+<div>
+<input id="to" placeholder="To"/>
+<div id="toList" class="list"></div>
+</div>
+
+<button onclick="search()">Search</button>
+
+<pre id="out"></pre>
 
 <script>
+async function init(){
+ const h=await fetch("/health").then(r=>r.json());
+ document.getElementById("mode").innerText =
+   `Mode: ${h.mode} | Provider: ${h.provider}`;
+ restore();
+ wire("from","fromList");
+ wire("to","toList");
+}
 
-/* ================= INIT ================= */
+function restore(){
+ const s=JSON.parse(localStorage.getItem("atajo")||"{}");
+ if(s.from)from.value=s.from;
+ if(s.to)to.value=s.to;
+}
 
-async function init() {
-  const h = await fetch("/health").then(r => r.json());
+function save(){
+ localStorage.setItem("atajo",JSON.stringify({
+  from:from.value,to:to.value
+ }));
+}
 
-  document.getElementById("mode").innerText =
-    "Mode: " + h.mode +
-    " | Provider: " + h.provider +
-    " | Marker: " + h.marker;
+function wire(id,listId){
+ const i=document.getElementById(id);
+ const l=document.getElementById(listId);
+
+ i.oninput=async()=>{
+  const q=i.value.trim();
+  if(q.length<2){l.innerHTML="";return;}
+  const r=await fetch("/api/places?q="+q);
+  const d=await r.json();
+  l.innerHTML="";
+  d.forEach(a=>{
+   const div=document.createElement("div");
+   div.className="item";
+   div.textContent=`${a.city} (${a.code})`;
+   div.onclick=()=>{
+    i.value=a.code;
+    l.innerHTML="";
+    save();
+   };
+   l.appendChild(div);
+  });
+ };
+}
+
+async function search(){
+ save();
+ const r=await fetch("/api/search",{
+  method:"POST",
+  headers:{"Content-Type":"application/json"},
+  body:JSON.stringify({
+   from:from.value,
+   to:to.value
+  })
+ });
+ const j=await r.json();
+ out.textContent=JSON.stringify(j,null,2);
 }
 
 init();
-
-/* ================= AUTOCOMPLETE ================= */
-
-async function lookup(inputId, listId) {
-
-  const q = document.getElementById(inputId).value;
-
-  if (q.length < 2) return;
-
-  const r = await fetch("/api/places?q=" + encodeURIComponent(q));
-  const j = await r.json();
-
-  const dl = document.getElementById(listId);
-
-  dl.innerHTML = "";
-
-  j.forEach(p => {
-
-    const o = document.createElement("option");
-
-    o.value = p.code;
-
-    o.label =
-      p.city +
-      " – " +
-      p.name +
-      " (" +
-      p.code +
-      ")";
-
-    dl.appendChild(o);
-
-  });
-}
-
-/* ================= SEARCH ================= */
-
-async function go() {
-
-  const from =
-    document.getElementById("from").value.toUpperCase();
-
-  const to =
-    document.getElementById("to").value.toUpperCase();
-
-  const r = await fetch("/api/search", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ from, to })
-  });
-
-  const j = await r.json();
-
-  const out = document.getElementById("out");
-
-  out.innerHTML = "";
-
-  if (!j.results || !j.results.length) {
-    out.innerHTML = "<p>No results</p>";
-    return;
-  }
-
-  j.results.forEach(x => {
-
-    const d = document.createElement("div");
-
-    d.className = "card";
-
-    d.innerHTML = `
-      <b>£${x.price_gbp}</b><br>
-      ${x.depart_date}<br>
-      Airline: ${x.airline}<br>
-      <a href="${x.link}" target="_blank">Book</a>
-    `;
-
-    out.appendChild(d);
-  });
-}
-
 </script>
 
 </body>
