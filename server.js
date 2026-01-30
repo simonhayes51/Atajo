@@ -19,13 +19,11 @@ app.use(morgan("dev"));
 const TP_TOKEN = process.env.TRAVELPAYOUTS_TOKEN || "";
 const TP_MARKER = process.env.TRAVELPAYOUTS_MARKER || "493900";
 
-// Rate/cost control
 const LEG_CACHE_TTL_MS = Number(process.env.LEG_CACHE_TTL_MS || 60 * 60 * 1000); // 1h
 
-// Hack sanity defaults (stops “NCL -> BRS (13h) -> IST”)
 const DEFAULT_MIN_BUFFER_MIN = Number(process.env.MIN_BUFFER_MIN || 180); // 3h
-const DEFAULT_MAX_LAYOVER_MIN = Number(process.env.MAX_LAYOVER_MIN || 360); // 6h hard cap
-const DEFAULT_MAX_TOTAL_HOURS = Number(process.env.MAX_TOTAL_HOURS || 48); // UI can override downwards
+const DEFAULT_MAX_LAYOVER_MIN = Number(process.env.MAX_LAYOVER_MIN || 360); // 6h
+const DEFAULT_MAX_TOTAL_HOURS = Number(process.env.MAX_TOTAL_HOURS || 48);
 
 function hasTP() {
   return TP_TOKEN && TP_TOKEN.length > 10;
@@ -95,7 +93,6 @@ app.get("/api/places", (req, res) => {
     return hay.includes(q);
   });
 
-  // Prefer starts-with
   hits.sort((a, b) => {
     const aScore =
       (a.iata.toLowerCase().startsWith(q) ? 3 : 0) +
@@ -119,8 +116,12 @@ app.get("/api/places", (req, res) => {
 /* ================= RAIL LOOKUP (STATIC) ================= */
 
 function bestRailLeg(origin, destination) {
+  if (!origin || !destination) return null;
+  if (origin === destination) return null;
+
   const edges = RAIL_EDGES.filter(e => e.origin === origin && e.destination === destination);
   if (!edges.length) return null;
+
   const best = edges.slice().sort((a, b) => a.price_gbp - b.price_gbp)[0];
   return {
     type: "TRAIN",
@@ -140,7 +141,6 @@ function bestRailLeg(origin, destination) {
 function normalizeTP(origin, destination, json, preferredDate) {
   const rows = Array.isArray(json?.data) ? json.data : [];
 
-  // Keep rows on same date if possible
   const filtered = preferredDate
     ? rows.filter(r =>
         (r.depart_date === preferredDate) ||
@@ -182,12 +182,18 @@ function normalizeTP(origin, destination, json, preferredDate) {
 }
 
 async function fetchTPLeg(origin, destination, date, limit = 3) {
+  origin = String(origin || "").toUpperCase().trim();
+  destination = String(destination || "").toUpperCase().trim();
+
+  // ✅ hard guard – prevents TP 400 spam
+  if (!origin || !destination) return [];
+  if (origin === destination) return [];
+
   const key = `tp|${origin}-${destination}-${date}|${limit}`;
   const cached = cacheGet(key);
   if (cached) return cached;
 
   if (!hasTP()) {
-    // MOCK fallback (keeps UI alive if no env vars)
     const mock = [{
       type: "FLIGHT",
       origin,
@@ -219,8 +225,8 @@ async function fetchTPLeg(origin, destination, date, limit = 3) {
   const j = (() => { try { return JSON.parse(txt); } catch { return {}; } })();
 
   if (!r.ok) {
-    console.error("TP leg error", r.status, txt.slice(0, 400));
-    cacheSet(key, [], 5 * 60 * 1000); // brief negative cache
+    console.error("TP leg error", r.status, txt.slice(0, 500));
+    cacheSet(key, [], 5 * 60 * 1000);
     return [];
   }
 
@@ -261,16 +267,9 @@ function scoreRoute(route, adventureLevel) {
     (route.legs.some(l => l._tight) ? 40 : 0);
 
   const bonus = extraCountries * 30 * adventureLevel;
-
   const score = route.total_cost + pain - bonus;
 
-  return {
-    score,
-    stops,
-    countriesCount: countries.length,
-    extraCountries,
-    pain
-  };
+  return { score, stops, countriesCount: countries.length, extraCountries, pain };
 }
 
 /* ================= SEARCH ENGINE ================= */
@@ -322,15 +321,14 @@ async function buildRoutes(params) {
   } = params;
 
   const dest = String(to || "").trim().toUpperCase();
-  if (dest.length !== 3) {
-    return { error: "Destination must be an IATA code (e.g. DUS, IST, BUD)." };
-  }
+  if (dest.length !== 3) return { error: "Destination must be an IATA code (e.g. DUS, IST, BUD)." };
 
-  const origins = originList(originScope, from);
   const dates = dateWindow(date, flexDays);
 
-  // Keep hub list sensible (and not “Dublin always”)
-  const hubs = HUBS.slice(0);
+  // ✅ also remove dest from origins early
+  const origins = originList(originScope, from).filter(o => o !== dest);
+
+  const hubs = HUBS.slice(0).filter(h => h !== dest);
 
   const routes = [];
 
@@ -339,10 +337,11 @@ async function buildRoutes(params) {
     return offers[0] || null;
   }
 
-  // DIRECT + 1 stop + 2 stops
   for (const dt of dates) {
     for (const origin of origins) {
-      // direct
+      if (origin === dest) continue; // ✅ belt & braces
+
+      // DIRECT
       const d0 = await bestLeg(origin, dest, dt);
       if (d0) {
         routes.push({
@@ -363,10 +362,11 @@ async function buildRoutes(params) {
           const rail2 = includeTrains ? bestRailLeg(h, dest) : null;
           const l2f = await bestLeg(h, dest, dt);
           const l2candidates = [l2f, rail2].filter(Boolean);
+
           for (const l2 of l2candidates) {
             const lay = computeLayover(l1, l2, minBufferMin);
-            if (lay.mins != null && lay.mins > maxLayoverMin) continue; // kill 13h layovers
-            if (lay.mins != null && lay.mins < 0) continue; // impossible time ordering
+            if (lay.mins != null && lay.mins > maxLayoverMin) continue;
+            if (lay.mins != null && lay.mins < 0) continue;
 
             l2._tight = lay.tight;
             l2._overnight = lay.overnight;
@@ -386,14 +386,15 @@ async function buildRoutes(params) {
       }
 
       if (maxStops >= 2) {
-        // pick cheapest few first hubs for speed
         const firstHubCandidates = [];
         for (const h1 of hubs) {
           if (h1 === origin || h1 === dest) continue;
           const l1 = await bestLeg(origin, h1, dt);
           if (l1) firstHubCandidates.push({ h1, l1 });
         }
+
         firstHubCandidates.sort((a, b) => a.l1.price_gbp - b.l1.price_gbp);
+
         for (const { h1, l1 } of firstHubCandidates.slice(0, 4)) {
           for (const h2 of hubs) {
             if (h2 === origin || h2 === dest || h2 === h1) continue;
@@ -440,11 +441,9 @@ async function buildRoutes(params) {
     }
   }
 
-  // Filter total hours cap
   const maxMins = Math.min(Number(maxTotalHours || DEFAULT_MAX_TOTAL_HOURS), DEFAULT_MAX_TOTAL_HOURS) * 60;
   const trimmed = routes.filter(r => r.total_duration_min <= maxMins);
 
-  // Dedup by path
   const seen = new Set();
   const deduped = [];
   for (const r of trimmed) {
@@ -454,12 +453,11 @@ async function buildRoutes(params) {
     deduped.push(r);
   }
 
-  // Score and sort
   const adv = Math.max(0, Math.min(2, Number(adventureLevel || 1)));
-  const scored = deduped.map(r => ({ ...r, ...scoreRoute(r, adv) }))
+  const scored = deduped
+    .map(r => ({ ...r, ...scoreRoute(r, adv) }))
     .sort((a, b) => a.score - b.score);
 
-  // “Original MVP” featured picks
   const cheapest = scored[0] || null;
   const bestValue = scored.slice().sort((a, b) => (a.total_cost + a.pain) - (b.total_cost + b.pain))[0] || null;
   const fastest = scored.slice().sort((a, b) => a.total_duration_min - b.total_duration_min)[0] || null;
@@ -486,7 +484,7 @@ app.post("/api/search", async (req, res) => {
       to: body.to,
       date: body.date || new Date().toISOString().slice(0, 10),
       flexDays: Number(body.flexDays || 0),
-      originScope: body.originScope || "UK_EU",        // UK / UK_EU / GLOBAL
+      originScope: body.originScope || "UK_EU",
       maxStops: Math.max(0, Math.min(3, Number(body.maxStops || 1))),
       adventureLevel: Math.max(0, Math.min(2, Number(body.adventureLevel || 1))),
       includeTrains: Boolean(body.includeTrains ?? true),
