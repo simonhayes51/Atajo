@@ -1,392 +1,5 @@
 [
   {
-    "iata": "NCL",
-    "name": "Newcastle",
-    "city": "Newcastle",
-    "country": "GB",
-    "lat": 55.0375,
-    "lon": -1.6917,
-    "metro": "Newcastle"
-  },
-  {
-    "iata": "EDI",
-    "name": "Edinburgh",
-    "city": "Edinburgh",
-    "country": "GB",
-    "lat": 55.95,
-    "lon": -3.3725,
-    "metro": "Edinburgh"
-  },
-  {
-    "iata": "GLA",
-    "name": "Glasgow",
-    "city": "Glasgow",
-    "country": "GB",
-    "lat": 55.8719,
-    "lon": -4.4331,
-    "metro": "Glasgow"
-  },
-  {
-    "iata": "MAN",
-    "name": "Manchester",
-    "city": "Manchester",
-    "country": "GB",
-    "lat": 53.3537,
-    "lon": -2.2749,
-    "metro": "Manchester"
-  },
-  {
-    "iata": "LHR",
-    "name": "London Heathrow",
-    "city": "London",
-    "country": "GB",
-    "lat": 51.47,
-    "lon": -0.4543,
-    "metro": "London"
-  },
-  {
-    "iata": "LGW",
-    "name": "London Gatwick",
-    "city": "London",
-    "country": "GB",
-    "lat": 51.1537,
-    "lon": -0.1821,
-    "metro": "London"
-  },
-  {
-    "iata": "STN",
-    "name": "London Stansted",
-    "city": "London",
-    "country": "GB",
-    "lat": 51.885,
-    "lon": 0.235,
-    "metro": "London"
-  },
-  {
-    "iata": "LTN",
-    "name": "London Luton",
-    "city": "London",
-    "country": "GB",
-    "lat": 51.8747,
-    "lon": -0.3683,
-    "metro": "London"
-  },
-  {
-    "iata": "BHX",
-    "name": "Birmingham",
-    "city": "Birmingham",
-    "country": "GB",
-    "lat": 52.4539,
-    "lon": -1.748,
-    "metro": "Birmingham"
-  },
-  {
-    "iata": "BRS",
-    "name": "Bristol",
-    "city": "Bristol",
-    "country": "GB",
-    "lat": 51.3827,
-    "lon": -2.7191,
-    "metro": "Bristol"
-  },
-  {
-    "iata": "DUB",
-    "name": "Dublin",
-    "city": "Dublin",
-    "country": "IE",
-    "lat": 53.4213,
-    "lon": -6.2701,
-    "metro": "Dublin"
-  },
-  {
-    "iata": "AMS",
-    "name": "Amsterdam Schiphol",
-    "city": "Amsterdam",
-    "country": "NL",
-    "lat": 52.3086,
-    "lon": 4.7639,
-    "metro": "Amsterdam"
-  },
-  {
-    "iata": "EIN",
-    "name": "Eindhoven",
-    "city": "Eindhoven",
-    "country": "NL",
-    "lat": 51.4501,
-    "lon": 5.3745,
-    "metro": "Eindhoven"
-  },
-  {
-    "iata": "BRU",
-    "name": "Brussels",
-    "city": "Brussels",
-    "country": "BE",
-    "lat": 50.901,
-    "lon": 4.4844,
-    "metro": "Brussels"
-  },
-  {
-    "iata": "CRL",
-    "name": "Brussels Charleroi",
-    "city": "Charleroi",
-    "country": "BE",
-    "lat": 50.4592,
-    "lon": 4.4538,
-    "metro": "Brussels"
-  },
-  {
-    "iata": "DUS",
-    "name": "D\u00fcsseldorf",
-    "city": "D\u00fcsseldorf",
-    "country": "DE",
-    "lat": 51.2895,
-    "lon": 6.7668,
-    "metro": "D\u00fcsseldorf"
-  },
-  {
-    "iata": "CGN",
-    "name": "Cologne Bonn",
-    "city": "Cologne",
-    "country": "DE",
-    "lat": 50.8659,
-    "lon": 7.1427,
-    "metro": "Cologne"
-  },
-  {
-    "iata": "FRA",
-    "name": "Frankfurt",
-    "city": "Frankfurt",
-    "country": "DE",
-    "lat": 50.0379,
-    "lon": 8.5622,
-    "metro": "Frankfurt"
-  },
-  {
-    "iata": "HHN",
-    "name": "Frankfurt Hahn",
-    "city": "Frankfurt",
-    "country": "DE",
-    "lat": 49.9487,
-    "lon": 7.2639,
-    "metro": "Frankfurt"
-  },
-  {
-    "iata": "BER",
-    "name": "Berlin Brandenburg",
-    "city": "Berlin",
-    "country": "DE",
-    "lat": 52.3667,
-    "lon": 13.5033,
-    "metro": "Berlin"
-  },
-  {
-    "iata": "HAM",
-    "name": "Hamburg",
-    "city": "Hamburg",
-    "country": "DE",
-    "lat": 53.6304,
-    "lon": 9.9882,
-    "metro": "Hamburg"
-  },
-  {
-    "iata": "MUC",
-    "name": "Munich",
-    "city": "Munich",
-    "country": "DE",
-    "lat": 48.3538,
-    "lon": 11.7861,
-    "metro": "Munich"
-  },
-  {
-    "iata": "CDG",
-    "name": "Paris Charles de Gaulle",
-    "city": "Paris",
-    "country": "FR",
-    "lat": 49.0097,
-    "lon": 2.5479,
-    "metro": "Paris"
-  },
-  {
-    "iata": "ORY",
-    "name": "Paris Orly",
-    "city": "Paris",
-    "country": "FR",
-    "lat": 48.7262,
-    "lon": 2.3652,
-    "metro": "Paris"
-  },
-  {
-    "iata": "BVA",
-    "name": "Paris Beauvais",
-    "city": "Paris",
-    "country": "FR",
-    "lat": 49.4544,
-    "lon": 2.1128,
-    "metro": "Paris"
-  },
-  {
-    "iata": "BCN",
-    "name": "Barcelona",
-    "city": "Barcelona",
-    "country": "ES",
-    "lat": 41.2974,
-    "lon": 2.0833,
-    "metro": "Barcelona"
-  },
-  {
-    "iata": "MAD",
-    "name": "Madrid",
-    "city": "Madrid",
-    "country": "ES",
-    "lat": 40.4983,
-    "lon": -3.5676,
-    "metro": "Madrid"
-  },
-  {
-    "iata": "PMI",
-    "name": "Palma de Mallorca",
-    "city": "Palma",
-    "country": "ES",
-    "lat": 39.5517,
-    "lon": 2.7388,
-    "metro": "Palma"
-  },
-  {
-    "iata": "AGP",
-    "name": "M\u00e1laga",
-    "city": "M\u00e1laga",
-    "country": "ES",
-    "lat": 36.6749,
-    "lon": -4.4991,
-    "metro": "M\u00e1laga"
-  },
-  {
-    "iata": "LIS",
-    "name": "Lisbon",
-    "city": "Lisbon",
-    "country": "PT",
-    "lat": 38.7742,
-    "lon": -9.1342,
-    "metro": "Lisbon"
-  },
-  {
-    "iata": "OPO",
-    "name": "Porto",
-    "city": "Porto",
-    "country": "PT",
-    "lat": 41.2421,
-    "lon": -8.6781,
-    "metro": "Porto"
-  },
-  {
-    "iata": "MXP",
-    "name": "Milan Malpensa",
-    "city": "Milan",
-    "country": "IT",
-    "lat": 45.63,
-    "lon": 8.7231,
-    "metro": "Milan"
-  },
-  {
-    "iata": "BGY",
-    "name": "Milan Bergamo",
-    "city": "Milan",
-    "country": "IT",
-    "lat": 45.6689,
-    "lon": 9.7003,
-    "metro": "Milan"
-  },
-  {
-    "iata": "FCO",
-    "name": "Rome Fiumicino",
-    "city": "Rome",
-    "country": "IT",
-    "lat": 41.8003,
-    "lon": 12.2389,
-    "metro": "Rome"
-  },
-  {
-    "iata": "CIA",
-    "name": "Rome Ciampino",
-    "city": "Rome",
-    "country": "IT",
-    "lat": 41.7994,
-    "lon": 12.5949,
-    "metro": "Rome"
-  },
-  {
-    "iata": "VCE",
-    "name": "Venice",
-    "city": "Venice",
-    "country": "IT",
-    "lat": 45.5053,
-    "lon": 12.3519,
-    "metro": "Venice"
-  },
-  {
-    "iata": "CPH",
-    "name": "Copenhagen",
-    "city": "Copenhagen",
-    "country": "DK",
-    "lat": 55.6181,
-    "lon": 12.6561,
-    "metro": "Copenhagen"
-  },
-  {
-    "iata": "ARN",
-    "name": "Stockholm Arlanda",
-    "city": "Stockholm",
-    "country": "SE",
-    "lat": 59.6519,
-    "lon": 17.9186,
-    "metro": "Stockholm"
-  },
-  {
-    "iata": "OSL",
-    "name": "Oslo",
-    "city": "Oslo",
-    "country": "NO",
-    "lat": 60.1939,
-    "lon": 11.1004,
-    "metro": "Oslo"
-  },
-  {
-    "iata": "WAW",
-    "name": "Warsaw",
-    "city": "Warsaw",
-    "country": "PL",
-    "lat": 52.1657,
-    "lon": 20.9671,
-    "metro": "Warsaw"
-  },
-  {
-    "iata": "PRG",
-    "name": "Prague",
-    "city": "Prague",
-    "country": "CZ",
-    "lat": 50.1008,
-    "lon": 14.26,
-    "metro": "Prague"
-  },
-  {
-    "iata": "BUD",
-    "name": "Budapest",
-    "city": "Budapest",
-    "country": "HU",
-    "lat": 47.4369,
-    "lon": 19.2556,
-    "metro": "Budapest"
-  },
-  {
-    "iata": "VIE",
-    "name": "Vienna",
-    "city": "Vienna",
-    "country": "AT",
-    "lat": 48.1103,
-    "lon": 16.5697,
-    "metro": "Vienna"
-  },
-  {
     "iata": "ACE",
     "name": "Lanzarote",
     "city": "Lanzarote",
@@ -396,49 +9,346 @@
     "metro": "Canaries"
   },
   {
-    "iata": "TFS",
-    "name": "Tenerife South",
-    "city": "Tenerife",
+    "iata": "ADB",
+    "name": "Izmir",
+    "city": "Izmir",
+    "country": "TR",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Izmir"
+  },
+  {
+    "iata": "AGP",
+    "name": "Malaga",
+    "city": "Malaga",
     "country": "ES",
-    "lat": 28.0445,
-    "lon": -16.5725,
-    "metro": "Canaries"
+    "lat": 0,
+    "lon": 0,
+    "metro": "Malaga"
   },
   {
-    "iata": "IST",
-    "name": "Istanbul Airport",
-    "city": "Istanbul",
-    "country": "TR",
-    "lat": 41.2753,
-    "lon": 28.7519,
-    "metro": "Istanbul"
+    "iata": "AKL",
+    "name": "Auckland",
+    "city": "Auckland",
+    "country": "NZ",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Auckland"
   },
   {
-    "iata": "SAW",
-    "name": "Sabiha G\u00f6k\u00e7en",
-    "city": "Istanbul",
-    "country": "TR",
-    "lat": 40.8986,
-    "lon": 29.3092,
-    "metro": "Istanbul"
+    "iata": "ALC",
+    "name": "Alicante",
+    "city": "Alicante",
+    "country": "ES",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Alicante"
+  },
+  {
+    "iata": "AMS",
+    "name": "Amsterdam Schiphol",
+    "city": "Amsterdam",
+    "country": "NL",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Amsterdam"
+  },
+  {
+    "iata": "ARN",
+    "name": "Stockholm Arlanda",
+    "city": "Stockholm",
+    "country": "SE",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Stockholm"
+  },
+  {
+    "iata": "ATH",
+    "name": "Athens",
+    "city": "Athens",
+    "country": "GR",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Athens"
+  },
+  {
+    "iata": "ATL",
+    "name": "Atlanta",
+    "city": "Atlanta",
+    "country": "US",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Atlanta"
+  },
+  {
+    "iata": "AUH",
+    "name": "Abu Dhabi",
+    "city": "Abu Dhabi",
+    "country": "AE",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Abu Dhabi"
   },
   {
     "iata": "AYT",
     "name": "Antalya",
     "city": "Antalya",
     "country": "TR",
-    "lat": 36.8987,
-    "lon": 30.8005,
+    "lat": 0,
+    "lon": 0,
     "metro": "Antalya"
   },
   {
-    "iata": "ADB",
-    "name": "Izmir Adnan Menderes",
-    "city": "Izmir",
+    "iata": "BCN",
+    "name": "Barcelona",
+    "city": "Barcelona",
+    "country": "ES",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Barcelona"
+  },
+  {
+    "iata": "BER",
+    "name": "Berlin Brandenburg",
+    "city": "Berlin",
+    "country": "DE",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Berlin"
+  },
+  {
+    "iata": "BEY",
+    "name": "Beirut",
+    "city": "Beirut",
+    "country": "LB",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Beirut"
+  },
+  {
+    "iata": "BGY",
+    "name": "Milan Bergamo",
+    "city": "Milan",
+    "country": "IT",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Milan"
+  },
+  {
+    "iata": "BHX",
+    "name": "Birmingham",
+    "city": "Birmingham",
+    "country": "GB",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Birmingham"
+  },
+  {
+    "iata": "BJV",
+    "name": "Milas\u2013Bodrum",
+    "city": "Bodrum",
     "country": "TR",
-    "lat": 38.2924,
-    "lon": 27.157,
-    "metro": "Izmir"
+    "lat": 37.2506,
+    "lon": 27.6643,
+    "metro": "Bodrum"
+  },
+  {
+    "iata": "BKK",
+    "name": "Bangkok",
+    "city": "Bangkok",
+    "country": "TH",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Bangkok"
+  },
+  {
+    "iata": "BNE",
+    "name": "Brisbane",
+    "city": "Brisbane",
+    "country": "AU",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Brisbane"
+  },
+  {
+    "iata": "BOG",
+    "name": "Bogota",
+    "city": "Bogota",
+    "country": "CO",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Bogota"
+  },
+  {
+    "iata": "BOM",
+    "name": "Mumbai",
+    "city": "Mumbai",
+    "country": "IN",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Mumbai"
+  },
+  {
+    "iata": "BOS",
+    "name": "Boston",
+    "city": "Boston",
+    "country": "US",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Boston"
+  },
+  {
+    "iata": "BRS",
+    "name": "Bristol",
+    "city": "Bristol",
+    "country": "GB",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Bristol"
+  },
+  {
+    "iata": "BRU",
+    "name": "Brussels",
+    "city": "Brussels",
+    "country": "BE",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Brussels"
+  },
+  {
+    "iata": "BUD",
+    "name": "Budapest",
+    "city": "Budapest",
+    "country": "HU",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Budapest"
+  },
+  {
+    "iata": "BVA",
+    "name": "Paris Beauvais",
+    "city": "Paris",
+    "country": "FR",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Paris"
+  },
+  {
+    "iata": "CAI",
+    "name": "Cairo",
+    "city": "Cairo",
+    "country": "EG",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Cairo"
+  },
+  {
+    "iata": "CDG",
+    "name": "Paris Charles de Gaulle",
+    "city": "Paris",
+    "country": "FR",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Paris"
+  },
+  {
+    "iata": "CGN",
+    "name": "Cologne Bonn",
+    "city": "Cologne",
+    "country": "DE",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Cologne"
+  },
+  {
+    "iata": "CIA",
+    "name": "Rome Ciampino",
+    "city": "Rome",
+    "country": "IT",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Rome"
+  },
+  {
+    "iata": "CMB",
+    "name": "Colombo",
+    "city": "Colombo",
+    "country": "LK",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Colombo"
+  },
+  {
+    "iata": "CMN",
+    "name": "Casablanca",
+    "city": "Casablanca",
+    "country": "MA",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Casablanca"
+  },
+  {
+    "iata": "CPH",
+    "name": "Copenhagen",
+    "city": "Copenhagen",
+    "country": "DK",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Copenhagen"
+  },
+  {
+    "iata": "CRL",
+    "name": "Brussels South Charleroi",
+    "city": "Charleroi",
+    "country": "BE",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Charleroi"
+  },
+  {
+    "iata": "CUN",
+    "name": "Cancun",
+    "city": "Cancun",
+    "country": "MX",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Cancun"
+  },
+  {
+    "iata": "DCA",
+    "name": "Washington National",
+    "city": "Washington",
+    "country": "US",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Washington"
+  },
+  {
+    "iata": "DEL",
+    "name": "Delhi",
+    "city": "Delhi",
+    "country": "IN",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Delhi"
+  },
+  {
+    "iata": "DEN",
+    "name": "Denver",
+    "city": "Denver",
+    "country": "US",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Denver"
+  },
+  {
+    "iata": "DFW",
+    "name": "Dallas/Fort Worth",
+    "city": "Dallas",
+    "country": "US",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Dallas"
   },
   {
     "iata": "DLM",
@@ -450,12 +360,813 @@
     "metro": "Dalaman"
   },
   {
-    "iata": "BJV",
-    "name": "Milas\u2013Bodrum",
-    "city": "Bodrum",
+    "iata": "DOH",
+    "name": "Doha",
+    "city": "Doha",
+    "country": "QA",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Doha"
+  },
+  {
+    "iata": "DUB",
+    "name": "Dublin",
+    "city": "Dublin",
+    "country": "IE",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Dublin"
+  },
+  {
+    "iata": "DUS",
+    "name": "Dusseldorf",
+    "city": "Dusseldorf",
+    "country": "DE",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Dusseldorf"
+  },
+  {
+    "iata": "DXB",
+    "name": "Dubai",
+    "city": "Dubai",
+    "country": "AE",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Dubai"
+  },
+  {
+    "iata": "EDI",
+    "name": "Edinburgh",
+    "city": "Edinburgh",
+    "country": "GB",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Edinburgh"
+  },
+  {
+    "iata": "EIN",
+    "name": "Eindhoven",
+    "city": "Eindhoven",
+    "country": "NL",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Eindhoven"
+  },
+  {
+    "iata": "ESB",
+    "name": "Ankara",
+    "city": "Ankara",
     "country": "TR",
-    "lat": 37.2506,
-    "lon": 27.6643,
-    "metro": "Bodrum"
+    "lat": 0,
+    "lon": 0,
+    "metro": "Ankara"
+  },
+  {
+    "iata": "EVN",
+    "name": "Yerevan",
+    "city": "Yerevan",
+    "country": "AM",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Yerevan"
+  },
+  {
+    "iata": "EWR",
+    "name": "Newark",
+    "city": "New York",
+    "country": "US",
+    "lat": 0,
+    "lon": 0,
+    "metro": "New York"
+  },
+  {
+    "iata": "EZE",
+    "name": "Buenos Aires",
+    "city": "Buenos Aires",
+    "country": "AR",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Buenos Aires"
+  },
+  {
+    "iata": "FCO",
+    "name": "Rome Fiumicino",
+    "city": "Rome",
+    "country": "IT",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Rome"
+  },
+  {
+    "iata": "FLL",
+    "name": "Fort Lauderdale",
+    "city": "Miami",
+    "country": "US",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Miami"
+  },
+  {
+    "iata": "FRA",
+    "name": "Frankfurt",
+    "city": "Frankfurt",
+    "country": "DE",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Frankfurt"
+  },
+  {
+    "iata": "GIG",
+    "name": "Rio de Janeiro",
+    "city": "Rio de Janeiro",
+    "country": "BR",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Rio de Janeiro"
+  },
+  {
+    "iata": "GLA",
+    "name": "Glasgow",
+    "city": "Glasgow",
+    "country": "GB",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Glasgow"
+  },
+  {
+    "iata": "GRU",
+    "name": "Sao Paulo",
+    "city": "Sao Paulo",
+    "country": "BR",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Sao Paulo"
+  },
+  {
+    "iata": "GVA",
+    "name": "Geneva",
+    "city": "Geneva",
+    "country": "CH",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Geneva"
+  },
+  {
+    "iata": "HAM",
+    "name": "Hamburg",
+    "city": "Hamburg",
+    "country": "DE",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Hamburg"
+  },
+  {
+    "iata": "HAN",
+    "name": "Hanoi",
+    "city": "Hanoi",
+    "country": "VN",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Hanoi"
+  },
+  {
+    "iata": "HEL",
+    "name": "Helsinki",
+    "city": "Helsinki",
+    "country": "FI",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Helsinki"
+  },
+  {
+    "iata": "HHN",
+    "name": "Frankfurt Hahn",
+    "city": "Frankfurt",
+    "country": "DE",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Frankfurt"
+  },
+  {
+    "iata": "HKG",
+    "name": "Hong Kong",
+    "city": "Hong Kong",
+    "country": "HK",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Hong Kong"
+  },
+  {
+    "iata": "HND",
+    "name": "Tokyo Haneda",
+    "city": "Tokyo",
+    "country": "JP",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Tokyo"
+  },
+  {
+    "iata": "HRG",
+    "name": "Hurghada",
+    "city": "Hurghada",
+    "country": "EG",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Hurghada"
+  },
+  {
+    "iata": "IAD",
+    "name": "Washington Dulles",
+    "city": "Washington",
+    "country": "US",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Washington"
+  },
+  {
+    "iata": "IAH",
+    "name": "Houston",
+    "city": "Houston",
+    "country": "US",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Houston"
+  },
+  {
+    "iata": "ICN",
+    "name": "Seoul Incheon",
+    "city": "Seoul",
+    "country": "KR",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Seoul"
+  },
+  {
+    "iata": "IST",
+    "name": "Istanbul",
+    "city": "Istanbul",
+    "country": "TR",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Istanbul"
+  },
+  {
+    "iata": "JED",
+    "name": "Jeddah",
+    "city": "Jeddah",
+    "country": "SA",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Jeddah"
+  },
+  {
+    "iata": "JFK",
+    "name": "New York JFK",
+    "city": "New York",
+    "country": "US",
+    "lat": 0,
+    "lon": 0,
+    "metro": "New York"
+  },
+  {
+    "iata": "KRK",
+    "name": "Krakow",
+    "city": "Krakow",
+    "country": "PL",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Krakow"
+  },
+  {
+    "iata": "KTM",
+    "name": "Kathmandu",
+    "city": "Kathmandu",
+    "country": "NP",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Kathmandu"
+  },
+  {
+    "iata": "KUL",
+    "name": "Kuala Lumpur",
+    "city": "Kuala Lumpur",
+    "country": "MY",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Kuala Lumpur"
+  },
+  {
+    "iata": "LAS",
+    "name": "Las Vegas",
+    "city": "Las Vegas",
+    "country": "US",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Las Vegas"
+  },
+  {
+    "iata": "LAX",
+    "name": "Los Angeles",
+    "city": "Los Angeles",
+    "country": "US",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Los Angeles"
+  },
+  {
+    "iata": "LGA",
+    "name": "LaGuardia",
+    "city": "New York",
+    "country": "US",
+    "lat": 0,
+    "lon": 0,
+    "metro": "New York"
+  },
+  {
+    "iata": "LGW",
+    "name": "London Gatwick",
+    "city": "London",
+    "country": "GB",
+    "lat": 0,
+    "lon": 0,
+    "metro": "London"
+  },
+  {
+    "iata": "LHR",
+    "name": "London Heathrow",
+    "city": "London",
+    "country": "GB",
+    "lat": 0,
+    "lon": 0,
+    "metro": "London"
+  },
+  {
+    "iata": "LIM",
+    "name": "Lima",
+    "city": "Lima",
+    "country": "PE",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Lima"
+  },
+  {
+    "iata": "LIN",
+    "name": "Milan Linate",
+    "city": "Milan",
+    "country": "IT",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Milan"
+  },
+  {
+    "iata": "LIS",
+    "name": "Lisbon",
+    "city": "Lisbon",
+    "country": "PT",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Lisbon"
+  },
+  {
+    "iata": "LTN",
+    "name": "London Luton",
+    "city": "London",
+    "country": "GB",
+    "lat": 0,
+    "lon": 0,
+    "metro": "London"
+  },
+  {
+    "iata": "LYS",
+    "name": "Lyon",
+    "city": "Lyon",
+    "country": "FR",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Lyon"
+  },
+  {
+    "iata": "MAD",
+    "name": "Madrid",
+    "city": "Madrid",
+    "country": "ES",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Madrid"
+  },
+  {
+    "iata": "MAN",
+    "name": "Manchester",
+    "city": "Manchester",
+    "country": "GB",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Manchester"
+  },
+  {
+    "iata": "MDW",
+    "name": "Chicago Midway",
+    "city": "Chicago",
+    "country": "US",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Chicago"
+  },
+  {
+    "iata": "MEL",
+    "name": "Melbourne",
+    "city": "Melbourne",
+    "country": "AU",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Melbourne"
+  },
+  {
+    "iata": "MEX",
+    "name": "Mexico City",
+    "city": "Mexico City",
+    "country": "MX",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Mexico City"
+  },
+  {
+    "iata": "MIA",
+    "name": "Miami",
+    "city": "Miami",
+    "country": "US",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Miami"
+  },
+  {
+    "iata": "MNL",
+    "name": "Manila",
+    "city": "Manila",
+    "country": "PH",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Manila"
+  },
+  {
+    "iata": "MRS",
+    "name": "Marseille",
+    "city": "Marseille",
+    "country": "FR",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Marseille"
+  },
+  {
+    "iata": "MUC",
+    "name": "Munich",
+    "city": "Munich",
+    "country": "DE",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Munich"
+  },
+  {
+    "iata": "MXP",
+    "name": "Milan Malpensa",
+    "city": "Milan",
+    "country": "IT",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Milan"
+  },
+  {
+    "iata": "NAP",
+    "name": "Naples",
+    "city": "Naples",
+    "country": "IT",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Naples"
+  },
+  {
+    "iata": "NCE",
+    "name": "Nice",
+    "city": "Nice",
+    "country": "FR",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Nice"
+  },
+  {
+    "iata": "NCL",
+    "name": "Newcastle",
+    "city": "Newcastle",
+    "country": "GB",
+    "lat": 55.0375,
+    "lon": -1.6917,
+    "metro": "Newcastle"
+  },
+  {
+    "iata": "NRT",
+    "name": "Tokyo Narita",
+    "city": "Tokyo",
+    "country": "JP",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Tokyo"
+  },
+  {
+    "iata": "OPO",
+    "name": "Porto",
+    "city": "Porto",
+    "country": "PT",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Porto"
+  },
+  {
+    "iata": "ORD",
+    "name": "Chicago O'Hare",
+    "city": "Chicago",
+    "country": "US",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Chicago"
+  },
+  {
+    "iata": "ORY",
+    "name": "Paris Orly",
+    "city": "Paris",
+    "country": "FR",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Paris"
+  },
+  {
+    "iata": "OSL",
+    "name": "Oslo",
+    "city": "Oslo",
+    "country": "NO",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Oslo"
+  },
+  {
+    "iata": "OTP",
+    "name": "Bucharest",
+    "city": "Bucharest",
+    "country": "RO",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Bucharest"
+  },
+  {
+    "iata": "PMI",
+    "name": "Palma",
+    "city": "Palma",
+    "country": "ES",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Palma"
+  },
+  {
+    "iata": "PRG",
+    "name": "Prague",
+    "city": "Prague",
+    "country": "CZ",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Prague"
+  },
+  {
+    "iata": "PTY",
+    "name": "Panama City",
+    "city": "Panama City",
+    "country": "PA",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Panama City"
+  },
+  {
+    "iata": "RAK",
+    "name": "Marrakesh",
+    "city": "Marrakesh",
+    "country": "MA",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Marrakesh"
+  },
+  {
+    "iata": "RUH",
+    "name": "Riyadh",
+    "city": "Riyadh",
+    "country": "SA",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Riyadh"
+  },
+  {
+    "iata": "SAW",
+    "name": "Istanbul Sabiha Gokcen",
+    "city": "Istanbul",
+    "country": "TR",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Istanbul"
+  },
+  {
+    "iata": "SCL",
+    "name": "Santiago",
+    "city": "Santiago",
+    "country": "CL",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Santiago"
+  },
+  {
+    "iata": "SEA",
+    "name": "Seattle",
+    "city": "Seattle",
+    "country": "US",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Seattle"
+  },
+  {
+    "iata": "SFO",
+    "name": "San Francisco",
+    "city": "San Francisco",
+    "country": "US",
+    "lat": 0,
+    "lon": 0,
+    "metro": "San Francisco"
+  },
+  {
+    "iata": "SGN",
+    "name": "Ho Chi Minh City",
+    "city": "Ho Chi Minh City",
+    "country": "VN",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Ho Chi Minh City"
+  },
+  {
+    "iata": "SIN",
+    "name": "Singapore",
+    "city": "Singapore",
+    "country": "SG",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Singapore"
+  },
+  {
+    "iata": "SJO",
+    "name": "San Jose",
+    "city": "San Jose",
+    "country": "CR",
+    "lat": 0,
+    "lon": 0,
+    "metro": "San Jose"
+  },
+  {
+    "iata": "SKG",
+    "name": "Thessaloniki",
+    "city": "Thessaloniki",
+    "country": "GR",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Thessaloniki"
+  },
+  {
+    "iata": "SNN",
+    "name": "Shannon",
+    "city": "Shannon",
+    "country": "IE",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Shannon"
+  },
+  {
+    "iata": "SOF",
+    "name": "Sofia",
+    "city": "Sofia",
+    "country": "BG",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Sofia"
+  },
+  {
+    "iata": "STN",
+    "name": "London Stansted",
+    "city": "London",
+    "country": "GB",
+    "lat": 0,
+    "lon": 0,
+    "metro": "London"
+  },
+  {
+    "iata": "STR",
+    "name": "Stuttgart",
+    "city": "Stuttgart",
+    "country": "DE",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Stuttgart"
+  },
+  {
+    "iata": "SYD",
+    "name": "Sydney",
+    "city": "Sydney",
+    "country": "AU",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Sydney"
+  },
+  {
+    "iata": "TBS",
+    "name": "Tbilisi",
+    "city": "Tbilisi",
+    "country": "GE",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Tbilisi"
+  },
+  {
+    "iata": "TFS",
+    "name": "Tenerife South",
+    "city": "Tenerife",
+    "country": "ES",
+    "lat": 28.0445,
+    "lon": -16.5725,
+    "metro": "Canaries"
+  },
+  {
+    "iata": "TLV",
+    "name": "Tel Aviv",
+    "city": "Tel Aviv",
+    "country": "IL",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Tel Aviv"
+  },
+  {
+    "iata": "VCE",
+    "name": "Venice",
+    "city": "Venice",
+    "country": "IT",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Venice"
+  },
+  {
+    "iata": "VIE",
+    "name": "Vienna",
+    "city": "Vienna",
+    "country": "AT",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Vienna"
+  },
+  {
+    "iata": "WAW",
+    "name": "Warsaw",
+    "city": "Warsaw",
+    "country": "PL",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Warsaw"
+  },
+  {
+    "iata": "YUL",
+    "name": "Montreal",
+    "city": "Montreal",
+    "country": "CA",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Montreal"
+  },
+  {
+    "iata": "YVR",
+    "name": "Vancouver",
+    "city": "Vancouver",
+    "country": "CA",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Vancouver"
+  },
+  {
+    "iata": "YYZ",
+    "name": "Toronto Pearson",
+    "city": "Toronto",
+    "country": "CA",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Toronto"
+  },
+  {
+    "iata": "ZRH",
+    "name": "Zurich",
+    "city": "Zurich",
+    "country": "CH",
+    "lat": 0,
+    "lon": 0,
+    "metro": "Zurich"
   }
 ]
