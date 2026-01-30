@@ -1,14 +1,12 @@
-import express from "express";
-import fetch from "node-fetch";
-import cors from "cors";
-import morgan from "morgan";
+const express = require("express");
+const fetch = require("node-fetch");
+const cors = require("cors");
+const morgan = require("morgan");
 
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
+const fs = require("fs");
+const path = require("path");
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+/* ================= LOAD AIRPORTS ================= */
 
 const airports = JSON.parse(
   fs.readFileSync(
@@ -16,6 +14,8 @@ const airports = JSON.parse(
     "utf8"
   )
 );
+
+/* ================= APP ================= */
 
 const app = express();
 
@@ -47,6 +47,7 @@ app.get("/health", (req, res) => {
 /* ================= AIRPORT SEARCH ================= */
 
 app.get("/api/places", (req, res) => {
+
   const q = String(req.query.q || "").toLowerCase();
 
   if (q.length < 2) {
@@ -67,11 +68,15 @@ app.get("/api/places", (req, res) => {
 /* ================= PROBE ================= */
 
 app.get("/api/tp_probe", async (req, res) => {
+
   if (!hasToken()) {
-    return res.status(400).json({ error: "Missing TRAVELPAYOUTS_TOKEN" });
+    return res.status(400).json({
+      error: "Missing TRAVELPAYOUTS_TOKEN"
+    });
   }
 
   try {
+
     const url =
       "https://api.travelpayouts.com/aviasales/v3/prices_for_dates" +
       "?origin=LON&destination=CDG&currency=gbp&token=" + TOKEN;
@@ -84,15 +89,22 @@ app.get("/api/tp_probe", async (req, res) => {
       count: j?.data?.length || 0,
       sample: j?.data?.slice(0, 3) || []
     });
+
   } catch (e) {
-    res.status(500).json({ error: String(e) });
+
+    res.status(500).json({
+      error: String(e)
+    });
+
   }
 });
 
 /* ================= SEARCH ================= */
 
 app.post("/api/search", async (req, res) => {
+
   try {
+
     if (!hasToken()) {
       return res.json({
         mode: "MOCK",
@@ -108,33 +120,35 @@ app.post("/api/search", async (req, res) => {
       });
     }
 
-    const url = new URL(
-      "https://api.travelpayouts.com/aviasales/v3/prices_for_dates"
-    );
+    const url =
+      "https://api.travelpayouts.com/aviasales/v3/prices_for_dates" +
+      "?origin=" + from.toUpperCase() +
+      "&destination=" + to.toUpperCase() +
+      "&currency=gbp" +
+      "&token=" + TOKEN;
 
-    url.searchParams.set("origin", from.toUpperCase());
-    url.searchParams.set("destination", to.toUpperCase());
-    url.searchParams.set("currency", "gbp");
-    url.searchParams.set("token", TOKEN);
-
-    const r = await fetch(url.toString());
+    const r = await fetch(url);
     const j = await r.json();
 
     const rows = Array.isArray(j.data) ? j.data : [];
 
     const results = rows.slice(0, 15).map(x => ({
+
       origin: from.toUpperCase(),
       destination: to.toUpperCase(),
       depart_date: x.depart_date,
       return_date: x.return_date,
       airline: x.airline,
       price_gbp: x.price,
+
       provider: "TRAVELPAYOUTS",
+
       link:
         "https://www.aviasales.com" +
         x.link +
         "?marker=" +
         MARKER
+
     }));
 
     res.json({
@@ -144,16 +158,21 @@ app.post("/api/search", async (req, res) => {
     });
 
   } catch (e) {
+
     console.error(e);
+
     res.status(500).json({
       error: "Search failed"
     });
+
   }
 });
 
 /* ================= STATIC ================= */
 
 app.use("/", express.static("public"));
+
+/* ================= START ================= */
 
 const port = process.env.PORT || 3000;
 
