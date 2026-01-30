@@ -31,6 +31,7 @@
 <body>
   <div class="wrap">
     <h1>Atajo</h1>
+    <p><span id="modeBanner" class="tag">mode: …</span></p>
     <p>The shortcut to cheaper travel. Enter where you need to end up — Atajo finds cheap multi-leg routes (plus rail shortcuts) you can book yourself.</p>
 
     <div class="card">
@@ -127,7 +128,7 @@
       </div>
 
       <div class="hr"></div>
-      <p class="small">Note: This MVP is informative. Routes may use separate tickets (self-transfer). Rail legs are estimated typical prices/durations.</p>
+      <p class="small">Note: This MVP is informative. Debug: open /api/debug to confirm LIVE/REPLAY and key detection. Routes may use separate tickets (self-transfer). Rail legs are estimated typical prices/durations.</p>
     </div>
 
     <div id="results"></div>
@@ -165,6 +166,14 @@
   }
 
   wireAutocomplete("from","fromHints");
+
+  // show backend mode + key detection
+  fetch("/health").then(r=>r.json()).then(h=>{
+    const el = $("modeBanner");
+    if (!el) return;
+    el.textContent = `mode: ${h.mode}${h.hasAmadeusKeys ? "" : " (no keys)"}`;
+  }).catch(()=>{});
+
   wireAutocomplete("to","toHints");
 
   function money(n){ return "£" + (Math.round(n*100)/100).toFixed(2); }
