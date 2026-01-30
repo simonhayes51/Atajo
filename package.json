@@ -1,13 +1,17 @@
 {
-  "name": "atajo-clean",
-  "version": "1.0.0",
+  "name": "atajo-mvp",
+  "version": "0.1.0",
+  "description": "Atajo MVP - cheapest multi-leg routes (informative) with live flight prices adapter + rail shortcuts",
   "main": "server.js",
+  "type": "module",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "node server.js"
   },
   "dependencies": {
     "express": "^4.19.2",
     "cors": "^2.8.5",
-    "node-fetch": "^2.6.7"
+    "morgan": "^1.10.0",
+    "node-fetch": "^3.3.2"
   }
 }
