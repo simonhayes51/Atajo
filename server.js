@@ -559,4 +559,8 @@ app.post("/api/search", async (req,res) => {
 app.use("/", express.static(path.join(__dirname, "public")));
 
 const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`Atajo MVP running on :${port} | mode=${dataMode दिखcode()} | budget=${API_BUDGET_DEFAULT}`));
+app.listen(port, () => {
+  console.log(
+    `Atajo MVP running on :${port} | mode=${dataMode()} | budget=${API_BUDGET_DEFAULT}`
+  );
+});
