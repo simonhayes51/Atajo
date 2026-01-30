@@ -1,14 +1,17 @@
-
 import express from "express";
 import fetch from "node-fetch";
 import cors from "cors";
 import morgan from "morgan";
+
+import airports from "./airports.json" assert { type: "json" };
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 app.use(morgan("dev"));
+
+/* ================= CONFIG ================= */
 
 const TOKEN = process.env.TRAVELPAYOUTS_TOKEN || "";
 const MARKER = process.env.TRAVELPAYOUTS_MARKER || "493900";
@@ -27,6 +30,26 @@ app.get("/health", (req, res) => {
     hasToken: hasToken(),
     marker: MARKER
   });
+});
+
+/* ================= AIRPORT SEARCH ================= */
+
+app.get("/api/places", (req, res) => {
+  const q = String(req.query.q || "").toLowerCase();
+
+  if (q.length < 2) {
+    return res.json([]);
+  }
+
+  const results = airports
+    .filter(a =>
+      a.code.toLowerCase().includes(q) ||
+      a.city.toLowerCase().includes(q) ||
+      a.name.toLowerCase().includes(q)
+    )
+    .slice(0, 10);
+
+  res.json(results);
 });
 
 /* ================= PROBE ================= */
@@ -68,7 +91,9 @@ app.post("/api/search", async (req, res) => {
     const { from, to } = req.body;
 
     if (!from || !to) {
-      return res.status(400).json({ error: "from and to required" });
+      return res.status(400).json({
+        error: "from and to required"
+      });
     }
 
     const url = new URL(
@@ -85,7 +110,7 @@ app.post("/api/search", async (req, res) => {
 
     const rows = Array.isArray(j.data) ? j.data : [];
 
-    const results = rows.slice(0, 15).map((x) => ({
+    const results = rows.slice(0, 15).map(x => ({
       origin: from.toUpperCase(),
       destination: to.toUpperCase(),
       depart_date: x.depart_date,
@@ -93,7 +118,11 @@ app.post("/api/search", async (req, res) => {
       airline: x.airline,
       price_gbp: x.price,
       provider: "TRAVELPAYOUTS",
-      link: "https://www.aviasales.com" + x.link + "?marker=" + MARKER
+      link:
+        "https://www.aviasales.com" +
+        x.link +
+        "?marker=" +
+        MARKER
     }));
 
     res.json({
@@ -101,9 +130,12 @@ app.post("/api/search", async (req, res) => {
       count: results.length,
       results
     });
+
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: "Search failed" });
+    res.status(500).json({
+      error: "Search failed"
+    });
   }
 });
 
@@ -114,5 +146,5 @@ app.use("/", express.static("public"));
 const port = process.env.PORT || 3000;
 
 app.listen(port, () => {
-  console.log("Atajo Travelpayouts running on", port);
+  console.log("Atajo running on", port);
 });
