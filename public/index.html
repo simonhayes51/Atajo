@@ -31,6 +31,7 @@
       border-radius:18px;
       padding:18px;
       box-shadow:0 20px 70px rgba(0,0,0,.35);
+      overflow: visible;
     }
     .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     label{display:block;font-size:13px;color:var(--muted);margin:8px 0 6px}
@@ -134,12 +135,26 @@
       <div class="row">
         <div class="rel">
           <label>From (IATA or city) — optional</label>
-          <input id="fromInput" autocomplete="off" placeholder="e.g. Newcastle or NCL">
+          <input
+            id="fromInput"
+            autocomplete="off"
+            autocapitalize="characters"
+            autocorrect="off"
+            spellcheck="false"
+            placeholder="e.g. Newcastle or NCL"
+          >
           <div id="fromSuggest" class="suggest hidden"></div>
         </div>
         <div class="rel">
           <label>To (IATA or city) — required</label>
-          <input id="toInput" autocomplete="off" placeholder="e.g. Düsseldorf or DUS">
+          <input
+            id="toInput"
+            autocomplete="off"
+            autocapitalize="characters"
+            autocorrect="off"
+            spellcheck="false"
+            placeholder="e.g. Düsseldorf or DUS"
+          >
           <div id="toSuggest" class="suggest hidden"></div>
         </div>
       </div>
@@ -251,16 +266,17 @@
     }
 
     async function fetchPlaces(q){
-      const r = await fetch(`/api/places?q=${encodeURIComponent(q)}`);
+      const r = await fetch(`/api/places?q=${encodeURIComponent(q)}`, { cache: "no-store" });
       if(!r.ok) return [];
       return await r.json();
     }
 
+    // IMPORTANT: backend returns { code, city, name } -> use x.code not x.iata
     function renderSuggestions(box, items, onPick){
       if(!items.length){ hideBox(box); return; }
       box.innerHTML = items.map(x => `
-        <div class="s-item" data-iata="${x.iata}">
-          <div class="s-code">${x.iata}</div>
+        <div class="s-item" data-iata="${x.code}">
+          <div class="s-code">${x.code}</div>
           <div>
             <div class="s-city">${x.city}</div>
             <div class="s-name">${x.name}</div>
@@ -396,12 +412,12 @@
         return;
       }
 
-      baselineEl.textContent = `Mode: ${j.mode.toUpperCase()} · Provider: ${j.provider} · Showing top ${j.picks.length} hacks`;
+      baselineEl.textContent = `Mode: ${String(j.mode || "").toUpperCase()} · Provider: ${j.provider || "?"} · Showing top ${(j.picks || []).length} hacks`;
 
-      const items = pickTitles(j.picks);
+      const items = pickTitles(j.picks || []);
       resultsEl.innerHTML = items.map(x => renderItinerary(x.title, x.route)).join("");
 
-      if(!j.picks.length){
+      if(!(j.picks || []).length){
         resultsEl.innerHTML = `<div class="meta">No routes found. Try a bigger origin scope or more stops.</div>`;
       }
     }
